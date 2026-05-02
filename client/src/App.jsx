@@ -8,10 +8,12 @@ import Login from './Login';
 import AdminLoginPage from './AdminLoginPage';
 import AboutUs from './AboutUs';
 import OurImpact from './OurImpact';
+import ScrollToTop from './ScrollToTop';
 
 function App() {
   return (
     <BrowserRouter>
+    <ScrollToTop />
       {/* This wrapper keeps the background styles consistent and pushes the footer to the bottom */}
       <div className="bg-surface font-body-md text-on-surface min-h-screen flex flex-col">
         

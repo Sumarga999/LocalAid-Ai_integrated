@@ -72,7 +72,7 @@ function SignUp() {
   };
 
   return (
-    <main className="flex-grow flex items-center justify-center py-xxl px-6 bg-pattern relative min-h-[80vh]">
+    <main className="flex-grow flex items-center justify-center py-l px-6 bg-pattern relative min-h-[80vh]">
       {/* Abstract Background Shape for Visual Interest */}
       <div className="absolute top-0 right-0 w-1/3 h-1/2 bg-primary-fixed/10 blur-[120px] rounded-full -z-10"></div>
       <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-secondary-fixed/10 blur-[120px] rounded-full -z-10"></div>
