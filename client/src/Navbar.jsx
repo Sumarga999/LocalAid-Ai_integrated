@@ -14,10 +14,13 @@ function Navbar() {
           />
         </Link>
         <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
-          <a className="text-green-700 dark:text-green-400 font-bold border-b-2 border-green-700 dark:border-green-400 pb-1" href="#">Find Tasks</a>
-          <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1" href="#">
+          <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1">Find Tasks</a>
+          
+          {/* UPDATED ADMIN LINK HERE */}
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1" to="/admin">
             <span className="material-symbols-outlined text-[20px]">shield</span> Admin
-          </a>
+          </Link>
+          
           <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">Our Impact</a>
           <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/about">About Us</Link>
         </nav>
