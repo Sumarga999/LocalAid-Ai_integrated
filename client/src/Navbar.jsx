@@ -21,7 +21,7 @@ function Navbar() {
             <span className="material-symbols-outlined text-[20px]">shield</span> Admin
           </Link>
           
-          <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">Our Impact</a>
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#" to="/ourimpact" >Our Impact</Link>
           <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/about">About Us</Link>
         </nav>
 
