@@ -28,7 +28,8 @@ function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          role: loginType
         }),
       });
 

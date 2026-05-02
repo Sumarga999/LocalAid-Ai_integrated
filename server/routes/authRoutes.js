@@ -43,34 +43,37 @@ router.post('/signup', async (req, res) => {
 });
 
 // Route: POST /api/auth/login
-// Purpose: Authenticate user & get token
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // 1. Grab the role from the frontend alongside email and password
+    const { email, password, role } = req.body;
 
-    // 1. Check if the user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
-    // 2. Check if the password matches the hashed password in the database
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
-    // 3. Create the JWT Payload (the data we want to store in the token)
+    // 2. NEW: Check if the role they selected matches their account in the database!
+    if (user.role !== role) {
+      const correctRole = user.role === 'volunteer' ? 'Volunteer' : 'Get Help';
+      return res.status(403).json({ 
+        message: `Account mismatch. Please log in as a ${correctRole}.` 
+      });
+    }
+
     const payload = {
       userId: user._id,
       role: user.role,
       name: user.name
     };
 
-    // 4. Sign the token
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); // Token lasts for 7 days
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    // 5. Send the token and user data back to React
     res.json({
       message: 'Login successful!',
       token,
