@@ -11,3 +11,8 @@
     background-size: cover;
     background-position: center;
 }
+
+.bg-pattern {
+    background-image: radial-gradient(circle at 2px 2px, #e2e2e2 1px, transparent 0);
+    background-size: 24px 24px;
+}
