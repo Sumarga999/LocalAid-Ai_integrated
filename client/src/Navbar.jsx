@@ -20,7 +20,6 @@ function Navbar() {
           </a>
           <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">Our Impact</a>
           <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/about">About Us</Link>
-          <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">Resources</a>
         </nav>
 
         {/* Right Side Buttons */}
