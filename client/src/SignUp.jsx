@@ -78,7 +78,7 @@ function SignUp() {
       <div className="absolute bottom-0 left-0 w-1/3 h-1/2 bg-secondary-fixed/10 blur-[120px] rounded-full -z-10"></div>
       
       {/* Main Signup Card */}
-      <div className="w-full max-w-[560px] bg-surface-container-lowest rounded-xl p-8 md:p-12 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] border border-outline-variant/30 my-12 z-10 bg-white">
+      <div className="w-full max-w-[560px] bg-surface-container-lowest rounded-xl p-8 md:p-12 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] border border-outline-variant/30 my-12 z-10">
         <div className="text-center mb-lg">
           <h1 className="font-headline-xl text-primary text-headline-xl mb-base">Join LocalAid</h1>
           <p className="font-body-lg text-on-surface-variant text-body-lg">Start making a difference today</p>
