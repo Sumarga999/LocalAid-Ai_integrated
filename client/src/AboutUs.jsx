@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { Link } from 'react-router-dom';
 function AboutUs() {
   return (
     <main className="flex-grow">
@@ -17,9 +17,9 @@ function AboutUs() {
               LocalAid is a grassroots digital platform connecting residents to facilitate mutual aid, volunteer management, and resource sharing within neighborhoods.
             </p>
             <div className="flex gap-md">
-              <button className="bg-primary text-on-primary px-8 py-4 rounded-lg font-label-md shadow-lg hover:shadow-primary/20 transition-all">
+              <Link to="/signup" className="bg-primary text-on-primary px-8 py-4 rounded-lg font-label-md shadow-lg hover:shadow-primary/20 transition-all">
                 Start Helping
-              </button>
+              </Link>
             </div>
           </div>
           <div className="relative">
