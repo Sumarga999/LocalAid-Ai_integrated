@@ -4,7 +4,7 @@ import logo from './assets/localaid-logo.png';
 
 function Navbar() {
   return (
-    <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b border-slate-100 dark:border-slate-800">
+    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-100">
       <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
         <Link to="/" className="flex-shrink-0">
           <img 
@@ -22,10 +22,20 @@ function Navbar() {
           <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/about">About Us</Link>
           <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">Resources</a>
         </nav>
-        <div className="flex items-center gap-4">
-          <button className="text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md px-4 py-2 transition-colors font-label-md">Log In</button>
-          <Link to="/signup" className="bg-primary hover:bg-primary-container text-white px-6 py-2.5 rounded-lg font-label-md transition-transform active:scale-95 duration-150 shadow-sm inline-block text-center">Get Started</Link>
+
+        {/* Right Side Buttons */}
+        <div className="flex items-center gap-6">
+          <Link to="/login" className="text-slate-600 hover:text-[#2e7d32] transition-colors font-medium">
+            Login
+          </Link>
+          <Link 
+            to="/signup" 
+            className="bg-[#2e7d32] hover:bg-[#1b5e20] text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm"
+          >
+            Sign Up
+          </Link>
         </div>
+        
       </div>
     </header>
   );

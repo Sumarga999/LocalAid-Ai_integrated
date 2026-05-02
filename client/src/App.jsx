@@ -4,6 +4,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import Home from './Home';
 import SignUp from './SignUp';
+import Login from './Login';
 import AboutUs from './AboutUs';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/about" element={<AboutUs />} />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </div>
         
