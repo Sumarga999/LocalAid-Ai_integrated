@@ -14,7 +14,7 @@ function Navbar() {
           />
         </Link>
         <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
-          <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1">Find Tasks</a>
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1">Find Tasks</Link>
           
           {/* UPDATED ADMIN LINK HERE */}
           <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1" to="/admin">
