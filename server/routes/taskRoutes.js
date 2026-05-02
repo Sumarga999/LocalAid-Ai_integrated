@@ -1,13 +1,24 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
 import Task from '../models/Task.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Route: POST /api/tasks
-// Purpose: Create a new help request
-// Access: Private (Requires login)
-router.post('/', authMiddleware, async (req, res) => {
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Make sure an 'uploads' folder exists in your backend!
+  },
+  filename: function (req, file, cb) {
+    // Give the file a unique name (Timestamp + original extension)
+    cb(null, Date.now() + path.extname(file.originalname)); 
+  }
+});
+
+const upload = multer({ storage: storage });
+
+router.post('/', authMiddleware, upload.single('image'), async (req, res) => {
   try {
     const { 
       title, 
@@ -20,6 +31,9 @@ router.post('/', authMiddleware, async (req, res) => {
       address 
     } = req.body;
 
+    // Grab the uploaded file path if the user included an image
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
+
     // Create the new task using the data from React
     const newTask = new Task({
       title,
@@ -27,14 +41,15 @@ router.post('/', authMiddleware, async (req, res) => {
       category,
       urgency,
       dueDate,
-      // Format the location exactly how MongoDB expects it (GeoJSON)
       location: {
         type: 'Point',
-        coordinates: [longitude, latitude], // Longitude MUST come first in MongoDB!
+        // CRITICAL FIX: FormData sends everything as text strings. 
+        // MongoDB requires coordinates to be actual Numbers, so we must use parseFloat()
+        coordinates: [parseFloat(longitude), parseFloat(latitude)], 
         address
       },
-      // We get the requester's ID directly from the verified token
-      requester: req.user.userId 
+      image: imagePath, // Save the image path to the database!
+      requester: req.user.userId // Kept your exact token structure
     });
 
     // Save it to the database

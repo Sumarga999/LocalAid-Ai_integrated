@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 
 dotenv.config();
 
@@ -10,6 +11,7 @@ const app = express();
 
 app.use(cors()); 
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
@@ -20,6 +22,7 @@ mongoose.connect(process.env.MONGO_URI)
   });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ message: 'LocalAid Backend is up and running! 🚀' });

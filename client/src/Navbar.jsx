@@ -39,21 +39,28 @@ function Navbar() {
         </Link>
 
         {user ? (
-          /* =========================================
-             LOGGED-IN VIEW
-             ========================================= */
           <>
             <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
-              <Link className="text-slate-600 hover:text-green-700 transition-colors flex items-center gap-1" to="/tasks">
-                Find Tasks
-              </Link>
+              
+              {/* Dynamic First Link: Report vs Find Tasks */}
+              {user.role === 'getHelp' ? (
+                <Link className="text-slate-600 hover:text-green-700 transition-colors" to="/get-help">
+                  Report
+                </Link>
+              ) : (
+                <Link className="text-slate-600 hover:text-green-700 transition-colors flex items-center gap-1" to="/tasks">
+                  Find Tasks
+                </Link>
+              )}
+
               <Link className="text-slate-600 hover:text-green-700 transition-colors" to="/ourimpact">
                 Our Impact
               </Link>
+              
               {/* Dynamic Dashboard Link */}
               <Link 
                 className="text-[#2e7d32] hover:text-[#1b5e20] transition-colors flex items-center gap-1 font-bold" 
-                to={user.role === 'volunteer' ? '/volunteer' : '/get-help'}
+                to={user.role === 'volunteer' ? '/volunteer' : '/dashboard'}
               >
                 <span className="material-symbols-outlined text-[20px]">dashboard</span> My Dashboard
               </Link>
@@ -74,9 +81,6 @@ function Navbar() {
             </div>
           </>
         ) : (
-          /* =========================================
-             LOGGED-OUT VIEW (Your Original Design!)
-             ========================================= */
           <>
             <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
               <Link className="text-slate-600 hover:text-green-700 transition-colors flex items-center gap-1" to="/tasks">
