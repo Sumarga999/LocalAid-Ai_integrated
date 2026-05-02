@@ -1,55 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 
-function VolunteerDashboard() {
+function Volunteer() {
   // State to handle which tab is currently selected
   const [activeTab, setActiveTab] = useState('all');
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    // Later, clear user tokens here
-    navigate('/');
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-plus-jakarta flex flex-col">
       
-      {/* HEADER */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-green-600 text-3xl">favorite</span>
-            <span className="text-2xl font-bold text-slate-800 tracking-tight">LocalAid</span>
-          </div>
-          
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-            <Link to="/" className="hover:text-green-600 transition-colors">Home</Link>
-            <Link to="/tasks" className="hover:text-green-600 transition-colors">Task Board</Link>
-            <Link to="/dashboard" className="text-green-600 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[18px]">dashboard</span> My Dashboard
-            </Link>
-            <Link to="/admin" className="hover:text-green-600 transition-colors flex items-center gap-1">
-              <span className="material-symbols-outlined text-[18px]">shield</span> Admin
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <div className="bg-[#e8f5e9] text-[#2e7d32] px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">account_circle</span>
-              Volunteer
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="bg-[#e53935] hover:bg-red-700 text-white px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTENT ONLY - No Header or Footer! */}
       <main className="flex-grow max-w-7xl mx-auto px-6 py-10 w-full">
         
         {/* Title Section */}
@@ -134,41 +92,8 @@ function VolunteerDashboard() {
         </div>
 
       </main>
-
-      {/* FOOTER */}
-      <footer className="bg-[#2e7d32] text-white py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 border-b border-green-700 pb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="material-symbols-outlined text-white text-3xl">favorite</span>
-              <span className="text-2xl font-bold tracking-tight">LocalAid</span>
-            </div>
-            <p className="text-green-100 text-sm">Connecting communities, one helping hand at a time.</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold mb-4">Contact Info</h3>
-            <ul className="space-y-3 text-green-100 text-sm">
-              <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">mail</span> support@localaid.org</li>
-              <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">phone</span> (555) 123-4567</li>
-              <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">location_on</span> San Francisco, CA</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold mb-4">About</h3>
-            <p className="text-green-100 text-sm leading-relaxed">
-              LocalAid is a civic tech platform dedicated to building stronger communities by connecting those who need help with volunteers ready to assist.
-            </p>
-          </div>
-        </div>
-        <div className="text-center text-green-200 text-sm flex flex-col items-center gap-2">
-          <p>© 2026 LocalAid. All rights reserved.</p>
-          <Link to="/admin" className="hover:text-white transition-colors flex items-center gap-1 text-xs">
-            <span className="material-symbols-outlined text-[14px]">shield</span> Admin Access
-          </Link>
-        </div>
-      </footer>
     </div>
   );
 }
 
-export default VolunteerDashboard;
+export default Volunteer;

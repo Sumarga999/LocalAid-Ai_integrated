@@ -12,7 +12,6 @@ import GetHelp from './GetHelp';
 import OurImpact from './OurImpact';
 import ScrollToTop from './ScrollToTop';
 import FindTasks from './FindTasks';
-import VolunteerDashboard from './Volunteer';
 
 function App() {
   return (

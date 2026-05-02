@@ -29,7 +29,7 @@ function SignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
-navigate('/dashboard');
+    navigate('/dashboard');
     // Check if passwords match before sending to backend!
     if (formData.password !== formData.confirmPassword) {
       setIsError(true);
