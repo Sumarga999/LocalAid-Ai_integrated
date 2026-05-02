@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 function Home() {
   // 1. Setup our state variables
@@ -7,6 +7,7 @@ function Home() {
   const [mapCenter, setMapCenter] = useState({ lat: -25.274398, lng: 133.775136, zoom: 4 });
   const [locationStatus, setLocationStatus] = useState('');
   const [isLocationFound, setIsLocationFound] = useState(false);
+  const navigate = useNavigate();
 
   // 2. Create the function to get the user's location
   const handleGetLocation = () => {
@@ -33,6 +34,10 @@ function Home() {
         setLocationStatus('Location access denied. Showing default map.');
       }
     );
+  };
+
+  const handleSignUpRedirect = () => {
+    navigate('/signup');
   };
 
   // 3. Generate the map URL dynamically based on our state
@@ -71,7 +76,8 @@ function Home() {
               Empowering neighborhoods through direct action. LocalAid connects those who can give with those who need help, building a more resilient community one task at a time.
             </p>
             <div className="flex flex-col sm:flex-row gap-md">
-              <button className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-8 py-4 rounded-lg font-headline-md text-headline-md shadow-lg transition-transform active:scale-95">Get Started</button>
+              <button onClick={handleSignUpRedirect}
+              className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-8 py-4 rounded-lg font-headline-md text-headline-md shadow-lg transition-transform active:scale-95">Get Started</button>
               <button className="border-2 border-white hover:bg-white/10 text-white px-8 py-4 rounded-lg font-headline-md text-headline-md transition-colors">View Tasks</button>
             </div>
           </div>
@@ -245,7 +251,8 @@ function Home() {
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="font-headline-lg text-headline-xl mb-md">Ready to Make a Difference?</h2>
             <p className="font-body-lg text-body-lg mb-xl opacity-90">Join thousands of your neighbors who are already making our community a better place to live. Sign up takes less than two minutes.</p>
-            <button className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-12 py-5 rounded-xl font-headline-md text-headline-md shadow-xl transition-all hover:-translate-y-1 active:scale-95">Sign Up Now</button>
+            <button onClick={handleSignUpRedirect}
+            className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-12 py-5 rounded-xl font-headline-md text-headline-md shadow-xl transition-all hover:-translate-y-1 active:scale-95">Sign Up Now</button>
           </div>
         </section>
       </main>

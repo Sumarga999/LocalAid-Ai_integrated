@@ -19,7 +19,7 @@ function Navbar() {
             <span className="material-symbols-outlined text-[20px]">shield</span> Admin
           </a>
           <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">Our Impact</a>
-          <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">About Us</a>
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/about">About Us</Link>
           <a className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#">Resources</a>
         </nav>
         <div className="flex items-center gap-4">
