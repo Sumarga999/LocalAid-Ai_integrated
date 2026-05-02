@@ -58,7 +58,7 @@ function SignUp() {
         setIsError(false);
         setMessage('Account created successfully! Redirecting...');
         setTimeout(() => {
-          navigate('/');
+          navigate('/Login'); 
         }, 2000);
       } else {
         setIsError(true);

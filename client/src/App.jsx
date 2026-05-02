@@ -7,6 +7,8 @@ import SignUp from './SignUp';
 import Login from './Login';
 import AdminLoginPage from './AdminLoginPage';
 import AboutUs from './AboutUs';
+import Volunteer from './Volunteer';
+import GetHelp from './GetHelp';
 import OurImpact from './OurImpact';
 import ScrollToTop from './ScrollToTop';
 
@@ -28,6 +30,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminLoginPage />} />
             <Route path="/ourimpact" element={<OurImpact />} />
+            <Route path="/volunteer" element={<Volunteer />} />
+            <Route path="/get-help" element={<GetHelp />} />
           </Routes>
         </div>
         

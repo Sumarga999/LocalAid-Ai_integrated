@@ -44,7 +44,13 @@ function Login() {
         localStorage.setItem('user', JSON.stringify(data.user));
 
         setTimeout(() => {
-          navigate('/'); // Redirect to the dashboard/home
+          if (data.user.role === 'volunteer') {
+            navigate('/volunteer'); 
+          } else if (data.user.role === 'getHelp') {
+            navigate('/get-help');
+          } else {
+            navigate('/');
+          }
         }, 1500);
       } else {
         setIsError(true);
