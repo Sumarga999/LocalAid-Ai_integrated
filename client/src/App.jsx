@@ -10,6 +10,7 @@ import AboutUs from './AboutUs';
 import OurImpact from './OurImpact';
 import ScrollToTop from './ScrollToTop';
 import FindTasks from './FindTasks';
+import VolunteerDashboard from './VolunteerDashboard';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             <Route path="/admin" element={<AdminLoginPage />} />
             <Route path="/ourimpact" element={<OurImpact />} />
             <Route path="/tasks" element={<FindTasks />} />
+            <Route path="/dashboard" element={<VolunteerDashboard />} />
           </Routes>
         </div>
         
