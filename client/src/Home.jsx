@@ -215,7 +215,7 @@ function Home() {
                   </div>
                 </div>
                 <div className="p-lg pt-0">
-                  <Link to="/signup" to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
+                  <Link to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
                     Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
                   </Link>
                 </div>
