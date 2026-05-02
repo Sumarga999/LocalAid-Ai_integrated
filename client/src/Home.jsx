@@ -68,21 +68,21 @@ function Home() {
               <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center mb-md">
                 <span className="material-symbols-outlined text-primary" data-icon="group">group</span>
               </div>
-              <div className="font-headline-lg text-primary">2,847</div>
+              <div className="font-headline-lg text-primary">000</div>
               <div className="font-label-md text-outline">Active Volunteers</div>
             </div>
             <div className="flex flex-col items-center text-center p-lg rounded-xl bg-surface-container-low">
               <div className="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center mb-md">
                 <span className="material-symbols-outlined text-secondary" data-icon="task_alt">task_alt</span>
               </div>
-              <div className="font-headline-lg text-primary">5,432</div>
+              <div className="font-headline-lg text-primary">000</div>
               <div className="font-label-md text-outline">Tasks Completed</div>
             </div>
             <div className="flex flex-col items-center text-center p-lg rounded-xl bg-surface-container-low">
               <div className="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center mb-md">
                 <span className="material-symbols-outlined text-tertiary" data-icon="schedule">schedule</span>
               </div>
-              <div className="font-headline-lg text-primary">12,890</div>
+              <div className="font-headline-lg text-primary">000</div>
               <div className="font-label-md text-outline">Volunteer Hours</div>
             </div>
           </div>
