@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function Home() {
   // 1. Setup our state variables
@@ -8,6 +8,19 @@ function Home() {
   const [locationStatus, setLocationStatus] = useState('');
   const [isLocationFound, setIsLocationFound] = useState(false);
   const navigate = useNavigate();
+  
+  // Bring in useLocation to listen for the #urgent-requests hash in the URL
+  const location = useLocation();
+
+  // Smooth scroll effect triggered when the URL has a hash
+  useEffect(() => {
+    if (location.hash === '#urgent-requests') {
+      const element = document.getElementById('urgent-requests');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [location]);
 
   // 2. Create the function to get the user's location
   const handleGetLocation = () => {
@@ -56,7 +69,10 @@ function Home() {
             <div className="flex flex-col sm:flex-row gap-md">
               <button onClick={handleSignUpRedirect}
               className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-8 py-4 rounded-lg font-headline-md text-headline-md shadow-lg transition-transform active:scale-95">Get Started</button>
-              <button className="border-2 border-white hover:bg-white/10 text-white px-8 py-4 rounded-lg font-headline-md text-headline-md transition-colors">View Tasks</button>
+              <button onClick={() => {
+                const element = document.getElementById('urgent-requests');
+                if (element) element.scrollIntoView({ behavior: 'smooth' });
+              }} className="border-2 border-white hover:bg-white/10 text-white px-8 py-4 rounded-lg font-headline-md text-headline-md transition-colors">View Tasks</button>
             </div>
           </div>
         </section>
@@ -88,8 +104,8 @@ function Home() {
           </div>
         </section>
 
-        {/* Urgent Requests Section */}
-        <section className="py-xxl px-6">
+        {/* Urgent Requests Section - ADDED ID HERE */}
+        <section id="urgent-requests" className="py-xxl px-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-end mb-xl">
               <div>

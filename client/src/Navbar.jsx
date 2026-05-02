@@ -14,15 +14,25 @@ function Navbar() {
           />
         </Link>
         <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
-          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1">Find Tasks</Link>
+          
+          {/* UPDATED FIND TASKS LINK HERE */}
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1" to="/#urgent-requests">
+            Find Tasks
+          </Link>
           
           {/* UPDATED ADMIN LINK HERE */}
           <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1" to="/admin">
             <span className="material-symbols-outlined text-[20px]">shield</span> Admin
           </Link>
           
-          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" href="#" to="/ourimpact" >Our Impact</Link>
-          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/about">About Us</Link>
+          {/* FIXED OUR IMPACT LINK HERE */}
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/ourimpact">
+            Our Impact
+          </Link>
+          
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors" to="/about">
+            About Us
+          </Link>
         </nav>
 
         {/* Right Side Buttons */}
