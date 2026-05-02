@@ -13,9 +13,9 @@ function Home() {
   // These are placeholder numbers. Once your database is connected, 
   // you will fetch the real numbers and update this state.
   const [stats, setStats] = useState({
-    activeVolunteers: 142,
-    tasksCompleted: 356,
-    activeTasks: 28 // Replaced "Volunteer Hours" with this!
+    activeVolunteers: 0,
+    tasksCompleted: 0,
+    activeTasks: 0 // Replaced "Volunteer Hours" with this!
   });
 
   // Example of how you will make this truly dynamic with your backend later:
