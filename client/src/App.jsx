@@ -11,6 +11,8 @@ import Volunteer from './Volunteer';
 import GetHelp from './GetHelp';
 import OurImpact from './OurImpact';
 import ScrollToTop from './ScrollToTop';
+import FindTasks from './FindTasks';
+import VolunteerDashboard from './Volunteer';
 
 function App() {
   return (
@@ -32,6 +34,7 @@ function App() {
             <Route path="/ourimpact" element={<OurImpact />} />
             <Route path="/volunteer" element={<Volunteer />} />
             <Route path="/get-help" element={<GetHelp />} />
+            <Route path="/tasks" element={<FindTasks />} />
           </Routes>
         </div>
         

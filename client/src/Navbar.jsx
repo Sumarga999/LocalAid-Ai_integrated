@@ -1,8 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logo from './assets/localaid-logo.png';
 
 function Navbar() {
+  // 1. Get the current URL path
+  const location = useLocation();
+
+  // 2. Hide this public navbar if we are on the dashboard
+  if (location.pathname === '/dashboard') {
+    return null;
+  }
+
+  // 3. Otherwise, return your normal public navbar!
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-100">
       <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
@@ -16,7 +25,7 @@ function Navbar() {
         <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
           
           {/* UPDATED FIND TASKS LINK HERE */}
-          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1" to="/#urgent-requests">
+          <Link className="text-slate-600 dark:text-slate-400 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center gap-1" to="/tasks">
             Find Tasks
           </Link>
           

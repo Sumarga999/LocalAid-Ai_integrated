@@ -1,16 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 function Home() {
-  // 1. Setup our state variables
-  // We default the map to the center of Australia with a zoomed-out view (zoom: 4)
+  // 1. Setup our state variables for the Map
   const [mapCenter, setMapCenter] = useState({ lat: -25.274398, lng: 133.775136, zoom: 4 });
   const [locationStatus, setLocationStatus] = useState('');
   const [isLocationFound, setIsLocationFound] = useState(false);
   const navigate = useNavigate();
-  
-  // Bring in useLocation to listen for the #urgent-requests hash in the URL
   const location = useLocation();
+
+  // 2. Setup state variables for our Dynamic Stats!
+  // These are placeholder numbers. Once your database is connected, 
+  // you will fetch the real numbers and update this state.
+  const [stats, setStats] = useState({
+    activeVolunteers: 0,
+    tasksCompleted: 0,
+    activeTasks: 0 // Replaced "Volunteer Hours" with this!
+  });
+
+  // Example of how you will make this truly dynamic with your backend later:
+  useEffect(() => {
+    /* // WHEN YOUR MONGODB/BACKEND IS READY, UNCOMMENT THIS:
+      fetch('http://localhost:5000/api/stats')
+        .then(response => response.json())
+        .then(data => {
+          setStats({
+            activeVolunteers: data.totalUsers,
+            tasksCompleted: data.completedTasksCount,
+            activeTasks: data.openTasksCount
+          });
+        })
+        .catch(error => console.error("Error fetching stats:", error));
+    */
+  }, []);
 
   // Smooth scroll effect triggered when the URL has a hash
   useEffect(() => {
@@ -22,7 +44,7 @@ function Home() {
     }
   }, [location]);
 
-  // 2. Create the function to get the user's location
+  // 3. Create the function to get the user's location
   const handleGetLocation = () => {
     setLocationStatus('Locating...');
     
@@ -33,7 +55,6 @@ function Home() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        // Success! Update the map with the user's coordinates and zoom in (zoom: 14)
         setLocationStatus('');
         setIsLocationFound(true);
         setMapCenter({
@@ -43,7 +64,6 @@ function Home() {
         });
       },
       (error) => {
-        // Handle if the user clicks "Block"
         setLocationStatus('Location access denied. Showing default map.');
       }
     );
@@ -53,7 +73,7 @@ function Home() {
     navigate('/signup');
   };
 
-  // 3. Generate the map URL dynamically based on our state
+  // Generate the map URL dynamically based on our state
   const mapUrl = `https://maps.google.com/maps?q=${mapCenter.lat},${mapCenter.lng}&z=${mapCenter.zoom}&output=embed`;
 
   return (
@@ -77,34 +97,42 @@ function Home() {
           </div>
         </section>
 
-        {/* Stats Section */}
+        {/* DYNAMIC Stats Section */}
         <section className="py-xl px-6 bg-white border-b border-surface-variant">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-lg">
+            
+            {/* Active Volunteers Stat */}
             <div className="flex flex-col items-center text-center p-lg rounded-xl bg-surface-container-low">
               <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center mb-md">
                 <span className="material-symbols-outlined text-primary" data-icon="group">group</span>
               </div>
-              <div className="font-headline-lg text-primary">000</div>
+              <div className="font-headline-lg text-primary">{stats.activeVolunteers}</div>
               <div className="font-label-md text-outline">Active Volunteers</div>
             </div>
+            
+            {/* Tasks Completed Stat */}
             <div className="flex flex-col items-center text-center p-lg rounded-xl bg-surface-container-low">
               <div className="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center mb-md">
                 <span className="material-symbols-outlined text-secondary" data-icon="task_alt">task_alt</span>
               </div>
-              <div className="font-headline-lg text-primary">000</div>
+              <div className="font-headline-lg text-primary">{stats.tasksCompleted}</div>
               <div className="font-label-md text-outline">Tasks Completed</div>
             </div>
+            
+            {/* Active Tasks Stat (Replaced Volunteer Hours) */}
             <div className="flex flex-col items-center text-center p-lg rounded-xl bg-surface-container-low">
               <div className="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center mb-md">
-                <span className="material-symbols-outlined text-tertiary" data-icon="schedule">schedule</span>
+                {/* Changed the icon from 'schedule' to 'assignment' to match the new stat */}
+                <span className="material-symbols-outlined text-tertiary" data-icon="assignment">assignment</span>
               </div>
-              <div className="font-headline-lg text-primary">000</div>
-              <div className="font-label-md text-outline">Volunteer Hours</div>
+              <div className="font-headline-lg text-primary">{stats.activeTasks}</div>
+              <div className="font-label-md text-outline">Active Tasks</div>
             </div>
+
           </div>
         </section>
 
-        {/* Urgent Requests Section - ADDED ID HERE */}
+        {/* Urgent Requests Section */}
         <section id="urgent-requests" className="py-xxl px-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-end mb-xl">
@@ -112,9 +140,9 @@ function Home() {
                 <h2 className="font-headline-lg text-headline-lg text-on-background mb-2">Urgent Requests</h2>
                 <p className="text-outline">Immediate needs in your local area that require support.</p>
               </div>
-              <button className="text-primary font-label-md flex items-center gap-2 hover:underline decoration-2 underline-offset-4">
+              <Link to="/tasks" className="text-primary font-label-md flex items-center gap-2 hover:underline decoration-2 underline-offset-4">
                 View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </button>
+              </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
               
@@ -137,9 +165,9 @@ function Home() {
                   </div>
                 </div>
                 <div className="p-lg pt-0">
-                  <button className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
+                  <Link to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
                     Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -162,9 +190,9 @@ function Home() {
                   </div>
                 </div>
                 <div className="p-lg pt-0">
-                  <button className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
+                  <Link to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
                     Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -187,9 +215,9 @@ function Home() {
                   </div>
                 </div>
                 <div className="p-lg pt-0">
-                  <button className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
+                  <Link to="/signup" to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
                     Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
-                  </button>
+                  </Link>
                 </div>
               </div>
 
@@ -197,7 +225,7 @@ function Home() {
           </div>
         </section>
 
-        {/* UPDATED INTERACTIVE MAP SECTION */}
+        {/* INTERACTIVE MAP SECTION */}
         <section className="py-xxl px-6 bg-surface-container-low">
           <div className="max-w-7xl mx-auto">
             <h2 className="font-headline-lg text-headline-lg text-on-background mb-xl text-center">Find Help Near You</h2>
