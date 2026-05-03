@@ -166,5 +166,27 @@ router.put('/:id', authMiddleware, upload.single('image'), async (req, res) => {
     res.status(500).json({ message: 'Error updating task' });
   }
 });
+// 9. DELETE Task
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
 
+    // Check if the user trying to delete is the person who created the task
+    const currentUserId = getUserId(req.user);
+    if (task.requester.toString() !== currentUserId) {
+      return res.status(403).json({ message: 'Unauthorized: You can only delete your own tasks' });
+    }
+
+    // Delete the task
+    await Task.findByIdAndDelete(req.params.id);
+    
+    res.status(200).json({ message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error("Delete Error:", error);
+    res.status(500).json({ message: 'Error deleting task' });
+  }
+});
 export default router;
