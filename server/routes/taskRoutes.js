@@ -106,23 +106,23 @@ router.put('/:id/accept', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'This task has already been accepted.' });
     }
 
-    // 3. Optional: Prevent the requester from accepting their own task
-    if (task.requester.toString() === req.user.id) {
+    // 3. Get the correct User ID from the token (The Ninja Bug Fix!)
+    const currentUserId = req.user._id || req.user.userId || req.user.id;
+    
+    // Prevent the requester from accepting their own task
+    if (task.requester.toString() === currentUserId) {
       return res.status(400).json({ message: 'You cannot accept a task you created.' });
     }
 
-    // 4. Update the task with the volunteer's ID
-    // Note: 'req.user.id' comes from your decoded JWT token
-    task.volunteer = req.user.id;
+    // 4. Update the task with the real volunteer's ID and change status
+    task.volunteer = currentUserId;
     
-    // If you have a status field in your schema, update it too
     if (task.status !== undefined) {
       task.status = 'in-progress'; 
     }
 
+    // 5. Save to the database and send the response!
     const updatedTask = await task.save();
-    
-    // Send the updated task back to the frontend
     res.json(updatedTask);
 
   } catch (error) {

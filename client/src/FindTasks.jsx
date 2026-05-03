@@ -127,8 +127,13 @@ function FindTasks() {
     }
   };
 
-  // --- FILTER LOGIC ---
+// --- FILTER LOGIC ---
   const filteredTasks = tasks.filter((task) => {
+    // STRICT FILTER: Only show tasks that are still open
+    if (task.status !== 'open') {
+      return false;
+    }
+
     const searchLower = searchTerm.toLowerCase();
     const title = task.title?.toLowerCase() || '';
     const desc = task.description?.toLowerCase() || '';
