@@ -24,6 +24,14 @@ const userSchema = new mongoose.Schema(
       enum: ['volunteer', 'getHelp'], // Restricts roles to exactly these two options from your frontend
       default: 'volunteer',
     },
+    ratings: [
+    {
+      rating: { type: Number, required: true, min: 1, max: 5 },
+      reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' }
+    }
+  ],
+  averageRating: { type: Number, default: 0 },
   },
   {
     timestamps: true, // Automatically adds a 'createdAt' and 'updatedAt' date to every user!

@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -88,6 +89,38 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login Error:', error);
     res.status(500).json({ message: 'Server error during login.' });
+  }
+});
+
+router.post('/:id/rate', authMiddleware, async (req, res) => {
+  try {
+    const { rating, taskId } = req.body;
+    const userToRate = await User.findById(req.params.id);
+
+    if (!userToRate) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Add the new rating to the array
+    userToRate.ratings.push({
+      rating: Number(rating),
+      reviewer: req.user.userId || req.user._id,
+      task: taskId
+    });
+
+    // Calculate the new average
+    const total = userToRate.ratings.reduce((sum, item) => sum + item.rating, 0);
+    userToRate.averageRating = total / userToRate.ratings.length;
+
+    await userToRate.save();
+
+    res.status(200).json({ 
+      message: 'Rating submitted successfully', 
+      averageRating: userToRate.averageRating 
+    });
+  } catch (error) {
+    console.error("Error rating user:", error);
+    res.status(500).json({ message: 'Server error while submitting rating' });
   }
 });
 export default router;
