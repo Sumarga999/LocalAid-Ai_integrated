@@ -127,18 +127,43 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
 // 8. GENERAL UPDATE (MUST BE LAST)
 router.put('/:id', authMiddleware, upload.single('image'), async (req, res) => {
   try {
-    const { status } = req.body;
+    // 1. Extract ALL the fields you might want to edit from the frontend
+    const { title, description, category, urgency, status } = req.body; 
+    
     const task = await Task.findById(req.params.id);
-    if (task.requester.toString() !== getUserId(req.user)) return res.status(403).json({ message: 'Unauthorized' });
+    if (!task) return res.status(404).json({ message: 'Task not found' });
 
+    // 2. Check authorization
+    if (task.requester.toString() !== getUserId(req.user)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    // 3. Update the fields if they exist in the request
+    if (title) task.title = title;
+    if (description) task.description = description;
+    if (category) task.category = category;
+    if (urgency) task.urgency = urgency;
+
+    // 4. Handle Status updates
     if (status === 'completed') {
       task.status = 'completed';
       task.completedAt = new Date();
+    } else if (status) {
+      task.status = status;
     }
+
+    // 5. Handle Image updates (if your edit page allows uploading a new image)
+    if (req.file) {
+      const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+      task.images = [imageUrl];
+    }
+
+    // 6. Save the updated task
     const updatedTask = await task.save();
     res.status(200).json(updatedTask);
   } catch (error) {
-    res.status(500).json({ message: 'Error' });
+    console.error("Update Error:", error);
+    res.status(500).json({ message: 'Error updating task' });
   }
 });
 
