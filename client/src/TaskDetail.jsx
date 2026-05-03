@@ -26,6 +26,32 @@ function TaskDetail() {
     fetchTaskDetails();
   }, [id]);
 
+  // --- NEW: Delete Task Function ---
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this request? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/tasks/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+
+      // Go back to the dashboard after deleting
+      navigate('/dashboard');
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      alert("Could not delete the task. Please try again.");
+    }
+  };
+
   if (loading) return <div className="p-10 text-center">Loading details...</div>;
   if (!task) return <div className="p-10 text-center">Task not found!</div>;
 
@@ -139,15 +165,34 @@ function TaskDetail() {
               </div>
             </div>
 
-            {/* Chat Placeholder Button */}
+            {/* Action Buttons Section */}
             <div className="mt-10 flex gap-4">
+              
+              {/* Chat Button */}
               {isInvolved && (
                 <button className="flex-1 bg-[#2e7d32] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[#1b5e20] shadow-lg shadow-green-100 transition-all">
                   <span className="material-symbols-outlined">chat</span>
-                  {/* FIXED: Using the cleaned ID variables for the check */}
                   Message {currentUserId === taskRequesterId ? 'Volunteer' : 'Requester'}
                 </button>
               )}
+
+              {/* NEW: Delete Button (Only visible to the Requester) */}
+              {currentUserId === taskRequesterId && (
+                <button 
+                  onClick={handleDelete}
+                  disabled={task.status.toLowerCase() !== 'open'}
+                  title={task.status.toLowerCase() !== 'open' ? "You cannot delete a task that is already in-progress or completed." : "Delete this request"}
+                  className={`px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                    task.status.toLowerCase() === 'open' 
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 cursor-pointer' 
+                      : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                  Delete
+                </button>
+              )}
+              
             </div>
           </div>
         </div>
