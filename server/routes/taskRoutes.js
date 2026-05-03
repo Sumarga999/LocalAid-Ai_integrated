@@ -31,8 +31,8 @@ router.post('/', authMiddleware, upload.single('image'), async (req, res) => {
       address 
     } = req.body;
 
-    // Grab the uploaded file path if the user included an image
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
+    // Grab the uploaded file and prepend the backend URL so React can show it easily
+    const imageUrl = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : '';
 
     // Create the new task using the data from React
     const newTask = new Task({
@@ -48,8 +48,9 @@ router.post('/', authMiddleware, upload.single('image'), async (req, res) => {
         coordinates: [parseFloat(longitude), parseFloat(latitude)], 
         address
       },
-      image: imagePath, // Save the image path to the database!
-      requester: req.user.userId // Kept your exact token structure
+      // THE FIX: Save the single URL inside an array named 'images'
+      images: imageUrl ? [imageUrl] : [], 
+      requester: req.user.userId || req.user._id || req.user.id
     });
 
     // Save it to the database
@@ -159,7 +160,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
-    
+
     const currentUserId = req.user.userId || req.user.id || req.user._id; 
     
     if (task.requester.toString() !== currentUserId.toString()) {
@@ -175,6 +176,61 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Error deleting task:", error);
     res.status(500).json({ message: 'Server error while deleting task' });
+  }
+});
+
+// PUT: Edit a task by ID (Protected by authMiddleware)
+router.put('/:id', authMiddleware, upload.single('image'), async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const task = await Task.findById(taskId);
+
+    // 1. Check if task exists
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // 2. Check ownership
+    const currentUserId = req.user.userId || req.user.id || req.user._id;
+    if (task.requester.toString() !== currentUserId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to edit this task' });
+    }
+
+    // 3. Ensure task is still 'open'
+    if (task.status !== 'open') {
+      return res.status(400).json({ message: 'Cannot edit a task that is already in progress or completed.' });
+    }
+
+    // 4. Update the text fields
+    const { title, description, category, urgency, address, latitude, longitude } = req.body;
+    
+    if (title) task.title = title;
+    if (description) task.description = description;
+    if (category) task.category = category;
+    if (urgency) task.urgency = urgency;
+    
+    // Update location if provided
+    if (address && latitude && longitude) {
+      task.location = {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        address
+      };
+    }
+
+    // 5. If they uploaded a NEW image, replace the old one
+    if (req.file) {
+      const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+      task.images = [imageUrl]; 
+    }
+
+    // 6. Save and return
+    const updatedTask = await task.save();
+    res.status(200).json({ message: 'Task updated successfully', task: updatedTask });
+
+  } catch (error) {
+    console.error("Error updating task:", error);
+    res.status(500).json({ message: 'Server error while updating task' });
   }
 });
 export default router;

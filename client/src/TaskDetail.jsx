@@ -176,7 +176,24 @@ function TaskDetail() {
                 </button>
               )}
 
-              {/* NEW: Delete Button (Only visible to the Requester) */}
+              {/* NEW: Edit Button (Only visible to the Requester) */}
+              {currentUserId === taskRequesterId && (
+                <button 
+                  onClick={() => navigate(`/edit-task/${id}`)}
+                  disabled={task.status.toLowerCase() !== 'open'}
+                  title={task.status.toLowerCase() !== 'open' ? "You cannot edit a task that is already in-progress or completed." : "Edit this request"}
+                  className={`px-6 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                    task.status.toLowerCase() === 'open' 
+                      ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 cursor-pointer' 
+                      : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="material-symbols-outlined">edit</span>
+                  Edit
+                </button>
+              )}
+
+              {/* Delete Button (Only visible to the Requester) */}
               {currentUserId === taskRequesterId && (
                 <button 
                   onClick={handleDelete}
