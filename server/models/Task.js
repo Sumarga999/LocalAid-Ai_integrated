@@ -1,76 +1,78 @@
 import mongoose from 'mongoose';
 
-const taskSchema = new mongoose.Schema(
-  {
-    title: {
+const taskSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  category: {
+    type: String,
+    required: true
+  },
+  urgency: {
+    type: String,
+    default: 'normal'
+  },
+  dueDate: {
+    type: Date
+  },
+  location: {
+    type: {
       type: String,
-      required: true,
-      trim: true,
+      enum: ['Point'],
+      default: 'Point'
     },
-    description: {
-      type: String,
-      required: true,
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      default: [0, 0]
     },
-    category: {
-      type: String,
-      enum: ['Medication Delivery', 'Child Day Care', 'Animal Day Care', 'Grocery Delivery', 'Other'],
-      required: true,
-    },
-    urgency: {
-      type: String,
-      enum: ['Low', 'Medium', 'High', 'Critical'],
-      default: 'Medium',
-    },
-    dueDate: {
-      type: Date, 
-    },
-    images: {
-      type: [String], 
-      default: [],
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ['Point'], 
-        default: 'Point',
-      },
-      coordinates: {
-        type: [Number], // Stored as [longitude, latitude]
-        required: true,
-      },
-      address: {
-        type: String, 
-      }
-    },
-    requester: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    volunteer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-    },
-    status: {
-      type: String,
-      enum: ['open', 'in-progress', 'completed'],
-      default: 'open',
-    },
-    // --- NEW: Track exactly when it was completed ---
-    completedAt: {
-      type: Date,
-      default: null,
+    address: {
+      type: String
     }
   },
-  {
-    timestamps: true, // Automatically handles exactly when it was posted
+  images: [{
+    type: String
+  }],
+  requester: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Make sure this matches your User model name exactly
+    required: true
+  },
+  volunteer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  status: {
+    type: String,
+    enum: ['open', 'in-progress', 'pending-completion', 'completed'],
+    default: 'open'
+  },
+  completedAt: {
+    type: Date,
+    default: null
+  },
+  // --- NEW FEEDBACK FIELDS ---
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    default: null
+  },
+  review: {
+    type: String,
+    default: null
   }
-);
+}, { 
+  timestamps: true // Automatically manages createdAt and updatedAt
+});
 
-// Allows us to calculate exactly how far away a task is!
+// Optional: Creates a geospatial index if you ever want to search tasks by proximity
 taskSchema.index({ location: '2dsphere' });
 
-const Task = mongoose.model('Task', taskSchema);
-
-export default Task;
+export default mongoose.model('Task', taskSchema);

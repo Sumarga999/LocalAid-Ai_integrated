@@ -8,8 +8,12 @@ function TaskDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const storedUser = localStorage.getItem('user');
-  const user = storedUser ? JSON.parse(storedUser) : null;
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [review, setReview] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
 
   useEffect(() => {
     const fetchTaskDetails = async () => {
@@ -19,7 +23,6 @@ function TaskDetail() {
         const data = await response.json();
         setTask(data);
       } catch (err) {
-        console.error("Error fetching task:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -28,158 +31,134 @@ function TaskDetail() {
     fetchTaskDetails();
   }, [id]);
 
-  const handleDelete = async () => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this request?");
-    if (!confirmDelete) return;
+  const handleRatingSubmit = async () => {
+    if (rating === 0) return alert("Please select a star rating");
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/tasks/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`http://localhost:5000/api/tasks/${id}/rate`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ rating, review })
       });
-      if (!response.ok) throw new Error('Failed to delete task');
-      navigate('/dashboard'); 
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to submit");
+      
+      // Update local state with the task returned from server
+      setTask(data); 
     } catch (err) {
       alert(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleComplete = async () => {
-    const confirmComplete = window.confirm("Mark as completed?");
-    if (!confirmComplete) return;
+  const handleSignalDone = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/tasks/${id}/request-completion`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setTask(data);
+    } catch (err) { alert(err.message); }
+  };
+
+  const handleFinalApprove = async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/tasks/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ status: 'completed' })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-      setTask(data); 
-      alert("Task completed!");
-    } catch (err) {
-      alert(err.message);
-    }
+      setTask(data);
+    } catch (err) { alert(err.message); }
   };
 
-  const handleCancelAcceptance = async () => {
-    const confirmCancel = window.confirm("Cancel your help for this task?");
-    if (!confirmCancel) return;
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/tasks/${id}/cancel`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-      
-      alert("Assignment cancelled.");
-      
-      // CHANGE THIS PATH to whatever matches your App.js route for the Volunteer Dashboard
-      navigate('/volunteer'); 
-      
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  if (loading) return <div className="p-10 text-center italic">Loading...</div>;
+  if (error || !task) return <div className="p-10 text-center text-red-500">Error: {error}</div>;
 
-  if (loading) return <div className="p-10 text-center">Loading details...</div>;
-  if (error || !task) return <div className="p-10 text-center text-red-500">Error: {error || "Task not found"}</div>;
+  const currentUserId = (user?._id || user?.userId || user?.id)?.toString();
+  const taskVolunteerId = (task.volunteer?._id || task.volunteer)?.toString();
+  const taskRequesterId = (task.requester?._id || task.requester)?.toString();
+  const isInvolved = currentUserId === taskVolunteerId || currentUserId === taskRequesterId;
 
-  // Safe ID extraction
-  const currentUserId = user?._id?.toString() || user?.userId?.toString() || user?.id?.toString();
-  const taskVolunteerId = task.volunteer?._id?.toString() || task.volunteer?.toString();
-  const taskRequesterId = task.requester?._id?.toString() || task.requester?.toString();
-
-  const isInvolved = currentUserId && (currentUserId === taskVolunteerId || currentUserId === taskRequesterId);
-  
   return (
     <div className="min-h-screen bg-slate-50 font-plus-jakarta pb-20">
       <div className="max-w-4xl mx-auto px-6 pt-10">
-        
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 cursor-pointer">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 mb-6 bg-transparent border-none font-bold cursor-pointer">
           <span className="material-symbols-outlined">arrow_back</span> Back
         </button>
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-slate-100 aspect-video w-full flex items-center justify-center border-b border-slate-200">
-            {task.images?.length > 0 ? (
-              <img src={task.images[0]} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="text-slate-400 flex flex-col items-center">
-                <span className="material-symbols-outlined text-6xl">image</span>
-                <p>No images</p>
-              </div>
-            )}
+          <div className="p-8 border-b border-slate-100 flex justify-between items-start">
+            <div>
+              <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase">{task.category}</span>
+              <h1 className="text-3xl font-bold text-slate-900 mt-3">{task.title}</h1>
+            </div>
+            <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 uppercase">
+              {task.status?.replace('-', ' ')}
+            </span>
           </div>
 
           <div className="p-8">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{task.category}</span>
-                <h1 className="text-3xl font-bold text-slate-900 mt-3">{task.title}</h1>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-slate-400 uppercase font-bold tracking-tighter">Status</p>
-                <p className={`font-semibold ${task.status === 'completed' ? 'text-gray-500' : task.status === 'open' ? 'text-green-600' : 'text-blue-600'}`}>
-                  {task.status?.toUpperCase()}
-                </p>
-              </div>
+            <p className="text-slate-700 leading-relaxed mb-8">{task.description}</p>
+
+            <div className="flex flex-wrap gap-4 pt-8 border-t border-slate-100">
+              {isInvolved && task.status !== 'completed' && (
+                <button onClick={() => navigate(`/chat/${id}`)} className="flex-1 bg-[#2e7d32] text-white py-4 rounded-2xl font-bold border-none cursor-pointer">Message</button>
+              )}
+              {currentUserId === taskVolunteerId && task.status === 'in-progress' && (
+                <button onClick={handleSignalDone} className="flex-1 bg-white text-[#2e7d32] py-4 rounded-2xl font-bold border-2 border-[#2e7d32] cursor-pointer">Mark Finished</button>
+              )}
+              {task.status === 'pending-completion' && currentUserId === taskRequesterId && (
+                <button onClick={handleFinalApprove} className="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold border-none cursor-pointer">Confirm & Complete</button>
+              )}
             </div>
 
-            <hr className="my-6 border-slate-100" />
-            
-            <div className="flex items-center gap-3 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="w-10 h-10 rounded-full bg-[#2e7d32] text-white flex items-center justify-center font-bold">
-                  {task.requester?.name?.charAt(0) || 'U'}
-              </div>
-              <div>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-tight">Requested by</p>
-                  <p className="text-slate-900 font-semibold">{task.requester?.name || 'User'}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="md:col-span-2">
-                <h2 className="text-lg font-bold text-slate-800 mb-2">Description</h2>
-                <p className="text-slate-600 whitespace-pre-line">{task.description}</p>
-              </div>
-              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-green-600">location_on</span> Location
-                </h2>
-                {isInvolved ? (
-                  <p className="text-sm font-medium text-slate-900">{task.location?.address}</p>
+            {/* RATING SECTION */}
+            {task.status === 'completed' && currentUserId === taskRequesterId && (
+              <div className="mt-10">
+                {!task.rating ? (
+                  <div className="p-8 bg-green-50 rounded-3xl border border-green-100 text-center">
+                    <h3 className="text-xl font-bold mb-4">Rate the Volunteer</h3>
+                    <div className="flex justify-center gap-2 mb-6">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className="material-symbols-outlined text-[40px] cursor-pointer transition-colors"
+                          style={{ color: star <= (hover || rating) ? '#FFB800' : '#CBD5E1', fontVariationSettings: star <= (hover || rating) ? "'FILL' 1" : "'FILL' 0" }}
+                          onClick={() => setRating(star)}
+                          onMouseEnter={() => setHover(star)}
+                          onMouseLeave={() => setHover(rating)}>star</span>
+                      ))}
+                    </div>
+                    <textarea className="w-full p-4 rounded-xl border border-slate-200 mb-4 outline-none" placeholder="Review..." value={review} onChange={(e) => setReview(e.target.value)} />
+                    <button onClick={handleRatingSubmit} disabled={isSubmitting} className="w-full py-4 bg-[#2e7d32] text-white rounded-2xl font-bold border-none cursor-pointer">
+                      {isSubmitting ? "Sending..." : "Submit Feedback"}
+                    </button>
+                  </div>
                 ) : (
-                  <p className="text-sm text-slate-500 italic">Hidden until accepted.</p>
+                  <div className="p-8 bg-white rounded-3xl border border-slate-200 text-center shadow-sm">
+                    <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="material-symbols-outlined">verified</span>
+                    </div>
+                    <h3 className="font-bold text-slate-900">Feedback Submitted</h3>
+                    <div className="flex justify-center gap-1 my-3">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className={`material-symbols-outlined ${i < task.rating ? 'text-yellow-500' : 'text-slate-200'}`} style={{ fontVariationSettings: i < task.rating ? "'FILL' 1" : "'FILL' 0" }}>star</span>
+                      ))}
+                    </div>
+                    {task.review && <p className="text-slate-500 italic">"{task.review}"</p>}
+                  </div>
                 )}
               </div>
-            </div>
-
-            <div className="mt-10 flex flex-wrap gap-4">
-              {isInvolved && task.status !== 'completed' && (
-                <button onClick={() => navigate(`/chat/${id}`)} className="flex-1 min-w-[200px] bg-[#2e7d32] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 cursor-pointer">
-                  <span className="material-symbols-outlined">chat</span> Message
-                </button>
-              )}
-
-              {currentUserId === taskVolunteerId && task.status === 'in-progress' && (
-                <button onClick={handleCancelAcceptance} className="flex-1 min-w-[200px] bg-orange-50 text-orange-700 py-4 rounded-2xl font-bold border border-orange-200 cursor-pointer">
-                  Cancel My Help
-                </button>
-              )}
-
-              {currentUserId === taskRequesterId && task.status !== 'completed' && (
-                <button onClick={handleComplete} className="flex-1 min-w-[200px] bg-white text-green-700 py-4 rounded-2xl font-bold border-2 border-green-600 cursor-pointer">
-                  Mark Complete
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>
