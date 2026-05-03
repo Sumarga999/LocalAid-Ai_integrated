@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['volunteer', 'getHelp'], // Restricts roles to exactly these two options from your frontend
+      enum: ['volunteer', 'getHelp', 'admin'], // Restricts roles to exactly these two options from your frontend
       default: 'volunteer',
     },
     ratings: [

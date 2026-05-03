@@ -1,14 +1,50 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AdminLoginPage = () => {
   const [email, setEmail] = useState('admin@localaid.org');
   const [password, setPassword] = useState('');
+  
+  // ADDED: States for loading and errors
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // CHANGED: Actually connects to your backend to log in
+ const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log('Logging in as admin with:', email, password);
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // THE FIX: We added "role: 'admin'" to this payload
+        body: JSON.stringify({ email, password, role: 'admin' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Ensure they are actually an admin
+      if (data.user.role !== 'admin') {
+        throw new Error('Access Denied: You do not have administrator privileges.');
+      }
+
+      // Save credentials and navigate to the dashboard
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      navigate('/admin-dashboard'); 
+      
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -30,7 +66,14 @@ const AdminLoginPage = () => {
 
         {/* Title and Subtitle */}
         <h1 className="text-4xl font-extrabold text-black text-center mb-2">Admin Portal</h1>
-        <p className="text-base text-neutral-500 text-center mb-8">Secure access for administrators only</p>
+        <p className="text-base text-neutral-500 text-center mb-6">Secure access for administrators only</p>
+
+        {/* ADDED: Error message display block */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium mb-6 text-center">
+            {error}
+          </div>
+        )}
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -79,9 +122,10 @@ const AdminLoginPage = () => {
 
           <button
             type="submit"
-            className="w-full bg-green-900 text-white font-bold py-4.5 rounded-2xl text-lg hover:bg-green-800 transition"
+            disabled={isLoading}
+            className="w-full bg-green-900 text-white font-bold py-[18px] rounded-2xl text-lg hover:bg-green-800 transition disabled:opacity-70"
           >
-            Login as Admin
+            {isLoading ? 'Authenticating...' : 'Login as Admin'}
           </button>
         </form>
 

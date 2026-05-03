@@ -15,7 +15,9 @@ import FindTasks from './FindTasks';
 import TaskDetail from './TaskDetail';
 import RequesterDashboard from './RequesterDashboard'; 
 import EditTask from './EditTask';
-import Chat from './Chat'; // <-- NEW: Imported the Chat component
+import Chat from './Chat';
+import AdminDashboard from './AdminDashboard';
+import AdminProtectedRoute from './AdminProtectedRoute';
 
 function App() {
   return (
@@ -39,6 +41,16 @@ function App() {
             <Route path="/get-help" element={<GetHelp />} />
             <Route path="/tasks" element={<FindTasks />} />
             <Route path="/edit-task/:id" element={<EditTask />} />
+            
+            {/* <-- SECURED ADMIN DASHBOARD --> */}
+            <Route 
+              path="/admin-dashboard" 
+              element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
+              } 
+            />
             
             {/* These two routes connect your Dashboard and Task Details together! */}
             <Route path="/dashboard" element={<RequesterDashboard />} />

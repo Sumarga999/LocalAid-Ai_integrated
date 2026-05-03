@@ -7,6 +7,7 @@ import { Server } from 'socket.io'; // NEW: Import Socket.io Server
 
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import Task from './models/Task.js';
 import User from './models/User.js';
 import Message from './models/Message.js'; // NEW: Import the Message model
@@ -38,6 +39,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ message: 'LocalAid Backend is up and running! 🚀' });
