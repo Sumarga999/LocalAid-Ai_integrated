@@ -6,11 +6,9 @@ function Volunteer() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Get logged-in user
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
 
-  // Fetch tasks on load
   useEffect(() => {
     const fetchTasks = async () => {
       try {
@@ -27,7 +25,6 @@ function Volunteer() {
     fetchTasks();
   }, []);
 
-  // If user isn't logged in, tell them to log in
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
@@ -37,18 +34,14 @@ function Volunteer() {
     );
   }
 
-  // --- DATA FILTERING ---
-  // 1. Get ONLY tasks this user has accepted
   const myVolunteerTasks = tasks.filter(task => 
-  task.volunteer === user._id || task.volunteer === user.id
-);
+    task.volunteer === user._id || task.volunteer === user.id
+  );
 
-  // 2. Calculate Stats
   const totalCount = myVolunteerTasks.length;
   const inProgressCount = myVolunteerTasks.filter(t => t.status === 'in-progress').length;
   const completedCount = myVolunteerTasks.filter(t => t.status === 'completed').length;
 
-  // 3. Filter tasks based on the active tab
   const displayedTasks = myVolunteerTasks.filter(task => {
     if (activeTab === 'all') return true;
     if (activeTab === 'progress') return task.status === 'in-progress';
@@ -101,116 +94,85 @@ function Volunteer() {
 
         {/* Tabs */}
         <div className="bg-white rounded-t-2xl border border-slate-200 shadow-sm border-b-0 flex">
-          <button 
-            onClick={() => setActiveTab('all')}
-            className={`flex-1 py-4 text-sm font-medium text-center border-b-2 transition-colors ${
-              activeTab === 'all' ? 'border-[#2e7d32] text-[#2e7d32]' : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            All Tasks ({totalCount})
-          </button>
-          <button 
-            onClick={() => setActiveTab('progress')}
-            className={`flex-1 py-4 text-sm font-medium text-center border-b-2 transition-colors ${
-              activeTab === 'progress' ? 'border-[#2e7d32] text-[#2e7d32]' : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            In Progress ({inProgressCount})
-          </button>
-          <button 
-            onClick={() => setActiveTab('completed')}
-            className={`flex-1 py-4 text-sm font-medium text-center border-b-2 transition-colors ${
-              activeTab === 'completed' ? 'border-[#2e7d32] text-[#2e7d32]' : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Completed ({completedCount})
-          </button>
+          {['all', 'progress', 'completed'].map((tab) => (
+            <button 
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-4 text-sm font-medium text-center border-b-2 transition-colors capitalize ${
+                activeTab === tab ? 'border-[#2e7d32] text-[#2e7d32]' : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {tab === 'progress' ? 'In Progress' : tab} ({
+                tab === 'all' ? totalCount : tab === 'progress' ? inProgressCount : completedCount
+              })
+            </button>
+          ))}
         </div>
 
-        {/* Task List or Empty State */}
-        <div className="bg-white p-8 rounded-b-2xl border border-slate-200 shadow-sm">
+        {/* Task List Section */}
+        <div className="bg-white p-4 md:p-6 rounded-b-2xl border border-slate-200 shadow-sm">
           {loading ? (
-            <div className="text-center text-slate-500 py-10">Loading your tasks...</div>
+            <div className="text-center text-slate-500 py-10 italic">Loading your assignments...</div>
           ) : displayedTasks.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-4">
               {displayedTasks.map(task => (
-  <Link 
-    to={`/task/${task._id}`} 
-    key={task._id} 
-    className="block group"
-  >
-    <div className="border border-slate-200 rounded-xl hover:shadow-md transition-all bg-white overflow-hidden flex flex-col h-full">
-      
-      {/* 1. Task Image Thumbnail */}
-      <div className="h-40 bg-slate-100 overflow-hidden relative">
-        {task.images && task.images.length > 0 ? (
-          <img 
-            src={task.images[0]} 
-            alt={task.title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-            <span className="material-symbols-outlined text-3xl">image</span>
-            <span className="text-xs uppercase font-bold tracking-wider">No Image</span>
-          </div>
-        )}
-        
-        {/* Status Badge Over Image */}
-        <div className="absolute top-3 right-3">
-          <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md shadow-sm ${
-            task.status === 'completed' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
-          }`}>
-            {task.status === 'in-progress' ? 'In Progress' : 'Completed'}
-          </span>
-        </div>
-      </div>
+                <div key={task._id} className="bg-white border border-slate-100 rounded-2xl p-4 hover:border-green-200 hover:shadow-md transition-all">
+                  <div className="flex flex-col md:flex-row items-center gap-5">
+                    
+                    {/* Thumbnail */}
+                    <div className="w-full md:w-24 h-24 rounded-xl bg-slate-100 overflow-hidden shrink-0">
+                      {task.images && task.images.length > 0 ? (
+                        <img src={task.images[0]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400">
+                          <span className="material-symbols-outlined">image</span>
+                        </div>
+                      )}
+                    </div>
 
-      {/* 2. Task Content */}
-      <div className="p-5 flex flex-col flex-grow">
-        <h3 className="font-bold text-lg text-slate-900 group-hover:text-[#2e7d32] transition-colors mb-2">
-          {task.title}
-        </h3>
-        
-        <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-          {task.description}
-        </p>
-        
-        {/* 3. Address Section (Sticks to bottom) */}
-        <div className="mt-auto">
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex gap-2 items-start text-sm text-slate-700">
-            <span className="material-symbols-outlined text-[18px] text-[#2e7d32] mt-0.5">location_on</span>
-            <div>
-              <span className="font-semibold block text-[12px] text-slate-500">EXACT ADDRESS:</span>
-              <span className="line-clamp-1">{task.location?.address || 'Address missing'}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </Link>
-))}
+                    {/* Task Info */}
+                    <div className="flex-grow text-center md:text-left overflow-hidden">
+                      <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-1">
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                          task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {task.status.replace('-', ' ')}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                          {task.category}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-slate-900 text-lg truncate mb-1">{task.title}</h3>
+                      <div className="flex items-center justify-center md:justify-start gap-1 text-slate-500 text-sm">
+                        <span className="material-symbols-outlined text-[16px]">location_on</span>
+                        <span className="truncate">{task.location?.address || 'No address'}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="shrink-0 w-full md:w-auto">
+                      <Link 
+                        to={`/task/${task._id}`}
+                        className="flex items-center justify-center gap-2 bg-slate-50 text-slate-700 hover:bg-[#2e7d32] hover:text-white border border-slate-200 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all"
+                      >
+                        Manage Task
+                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                      </Link>
+                    </div>
+
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-center py-10">
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-[32px] text-slate-400">error</span>
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">No tasks found</h2>
-              <p className="text-slate-500 max-w-md mb-6">
-                {activeTab === 'all' 
-                  ? "You haven't accepted any requests yet. Visit the Task Board to find tasks to help with!"
-                  : `You have no ${activeTab === 'progress' ? 'in-progress' : 'completed'} tasks right now.`}
-              </p>
-              {activeTab === 'all' && (
-                <Link to="/tasks" className="bg-[#2e7d32] text-white px-6 py-2.5 rounded-xl font-medium hover:bg-[#1b5e20] transition-colors">
-                  Browse Task Board
-                </Link>
-              )}
+              <span className="material-symbols-outlined text-[48px] text-slate-300 mb-3">assignment_late</span>
+              <h2 className="text-xl font-bold text-slate-900 mb-1">No tasks to show</h2>
+              <p className="text-slate-500 mb-6 text-sm">Looks like there's nothing in this category yet.</p>
+              <Link to="/tasks" className="text-[#2e7d32] font-bold hover:underline">Browse Task Board →</Link>
             </div>
           )}
         </div>
-
       </main>
     </div>
   );

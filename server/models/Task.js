@@ -57,6 +57,11 @@ const taskSchema = new mongoose.Schema(
       enum: ['open', 'in-progress', 'completed'],
       default: 'open',
     },
+    // --- NEW: Track exactly when it was completed ---
+    completedAt: {
+      type: Date,
+      default: null,
+    }
   },
   {
     timestamps: true, // Automatically handles exactly when it was posted
