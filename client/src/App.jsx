@@ -13,11 +13,12 @@ import OurImpact from './OurImpact';
 import ScrollToTop from './ScrollToTop';
 import FindTasks from './FindTasks';
 import TaskDetail from './TaskDetail';
+import RequesterDashboard from './RequesterDashboard'; 
 
 function App() {
   return (
     <BrowserRouter>
-    <ScrollToTop />
+      <ScrollToTop />
       {/* This wrapper keeps the background styles consistent and pushes the footer to the bottom */}
       <div className="bg-surface font-body-md text-on-surface min-h-screen flex flex-col">
         
@@ -35,6 +36,9 @@ function App() {
             <Route path="/volunteer" element={<Volunteer />} />
             <Route path="/get-help" element={<GetHelp />} />
             <Route path="/tasks" element={<FindTasks />} />
+            
+            {/* These two routes connect your Dashboard and Task Details together! */}
+            <Route path="/dashboard" element={<RequesterDashboard />} />
             <Route path="/task/:id" element={<TaskDetail />} />
           </Routes>
         </div>

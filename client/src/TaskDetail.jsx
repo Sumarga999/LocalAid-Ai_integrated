@@ -29,13 +29,6 @@ function TaskDetail() {
   if (loading) return <div className="p-10 text-center">Loading details...</div>;
   if (!task) return <div className="p-10 text-center">Task not found!</div>;
 
-  // Check if the current user is the volunteer or the requester
-//  const isInvolved = user && (
-//   task.volunteer?.toString() === (user._id || user.userId) || 
-//   task.requester?.toString() === (user._id || user.userId)
-// );
-
-// --- PASTE STEP 2 CODE HERE ---
   const currentUserId = user?._id?.toString() || user?.userId?.toString() || user?.id?.toString();
   const taskVolunteerId = task.volunteer?._id?.toString() || task.volunteer?.toString();
   const taskRequesterId = task.requester?._id?.toString() || task.requester?.toString();
@@ -45,11 +38,6 @@ function TaskDetail() {
     currentUserId === taskRequesterId
   );
   
-  // Optional: Keep the logs to verify it's working
-  console.log("Current User:", currentUserId);
-  console.log("Volunteer on Task:", taskVolunteerId);
-  console.log("Is involved?", isInvolved);
-
   return (
     <div className="min-h-screen bg-slate-50 font-plus-jakarta pb-20">
       <div className="max-w-4xl mx-auto px-6 pt-10">
@@ -135,7 +123,7 @@ function TaskDetail() {
                     <button 
                     onClick={() => {
                         const encodedAddress = encodeURIComponent(task.location?.address);
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');;
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
                     }}
                     className="w-full py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm flex items-center justify-center gap-2 transition-all"
                     >
@@ -156,7 +144,8 @@ function TaskDetail() {
               {isInvolved && (
                 <button className="flex-1 bg-[#2e7d32] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[#1b5e20] shadow-lg shadow-green-100 transition-all">
                   <span className="material-symbols-outlined">chat</span>
-                  Message {task.requester === user._id ? 'Volunteer' : 'Requester'}
+                  {/* FIXED: Using the cleaned ID variables for the check */}
+                  Message {currentUserId === taskRequesterId ? 'Volunteer' : 'Requester'}
                 </button>
               )}
             </div>

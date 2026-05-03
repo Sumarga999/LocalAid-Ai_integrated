@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 function GetHelp() {
   const navigate = useNavigate();
   
-  // State to hold standard text inputs
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,28 +15,62 @@ function GetHelp() {
     longitude: null,
   });
 
-  // State to specifically hold the physical image file
   const [imageFile, setImageFile] = useState(null);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Handle standard text input changes
+  // --- NEW: State for location suggestions ---
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState(null);
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle file input changes
   const handleFileChange = (e) => {
-    setImageFile(e.target.files[0]); // Grab the first file the user selects
+    setImageFile(e.target.files[0]);
   };
 
-  // ==========================================
-  // UPDATED: Grab GPS & Convert to Comma Address
-  // ==========================================
+  // --- NEW: Handle typing in the address bar to get suggestions ---
+  const handleAddressChange = (e) => {
+    const query = e.target.value;
+    setFormData({ ...formData, address: query });
+
+    // Clear the previous timeout so we don't spam the API while typing
+    if (searchTimeout) clearTimeout(searchTimeout);
+
+    if (query.length > 2) {
+      const timeout = setTimeout(async () => {
+        try {
+          // Fetch suggestions from OpenStreetMap (Works globally, including Kathmandu & Australia)
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+          const data = await response.json();
+          setSuggestions(data);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error("Error fetching location suggestions:", err);
+        }
+      }, 500); // Wait 500ms after user stops typing
+      setSearchTimeout(timeout);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // --- NEW: Handle clicking a suggestion ---
+  const handleSelectSuggestion = (suggestion) => {
+    setFormData(prev => ({
+      ...prev,
+      address: suggestion.display_name,
+      latitude: parseFloat(suggestion.lat),
+      longitude: parseFloat(suggestion.lon)
+    }));
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
+
   const handleGetLocation = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -46,7 +79,6 @@ function GetHelp() {
           const lon = position.coords.longitude;
           
           try {
-            // Fetch the human-readable address from OpenStreetMap (Free API)
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
             const data = await response.json();
             
@@ -54,34 +86,25 @@ function GetHelp() {
             
             if (data && data.address) {
               const { house_number, road, neighbourhood, suburb, city, town, village, state } = data.address;
-              
-              // Combine available parts into an array, then join them with commas!
               const addressParts = [
                 house_number ? `${house_number} ${road || ''}`.trim() : road,
                 neighbourhood || suburb,
                 city || town || village,
                 state
-              ].filter(Boolean); // removes any undefined/empty parts
+              ].filter(Boolean); 
               
               finalAddress = addressParts.join(', ');
             }
 
-            // Update state safely with the newly formatted comma address
             setFormData(prev => ({
               ...prev,
               latitude: lat,
               longitude: lon,
               address: finalAddress
             }));
-
           } catch (err) {
             console.error("Error converting coordinates to address:", err);
-            // Fallback: just save the coordinates if the API fails
-            setFormData(prev => ({
-              ...prev,
-              latitude: lat,
-              longitude: lon,
-            }));
+            setFormData(prev => ({ ...prev, latitude: lat, longitude: lon }));
           }
         },
         (err) => {
@@ -94,30 +117,21 @@ function GetHelp() {
     }
   };
 
-  // Submit the form to our backend
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     if (!formData.latitude || !formData.longitude) {
-      setError("Please click 'Get My Location' so volunteers can find you.");
+      setError("Please select a location from the suggestions or click 'Get My Location'.");
       setLoading(false);
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      
-      if (!token) {
-        setError("You must be logged in to request help.");
-        setLoading(false);
-        return;
-      }
+      if (!token) throw new Error("You must be logged in to request help.");
 
-      // ==========================================
-      // THE MULTER WAY: Build a FormData object
-      // ==========================================
       const submitData = new FormData();
       submitData.append('title', formData.title);
       submitData.append('description', formData.description);
@@ -127,33 +141,21 @@ function GetHelp() {
       submitData.append('latitude', formData.latitude);
       submitData.append('longitude', formData.longitude);
       
-      if (formData.dueDate) {
-        submitData.append('dueDate', formData.dueDate);
-      }
-
-      // If they selected an image, append it under the key 'image'
-      // This key must exactly match what your backend multer expects: upload.single('image')
-      if (imageFile) {
-        submitData.append('image', imageFile);
-      }
+      if (formData.dueDate) submitData.append('dueDate', formData.dueDate);
+      if (imageFile) submitData.append('image', imageFile);
 
       const response = await fetch('http://localhost:5000/api/tasks', {
         method: 'POST',
-        headers: {
-          // CRITICAL: Do NOT set 'Content-Type': 'application/json' here!
-          // The browser will automatically set it to 'multipart/form-data' for us.
-          'Authorization': `Bearer ${token}` 
-        },
-        body: submitData // Send the FormData object directly
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: submitData 
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.message || 'Failed to create request');
       }
 
-      navigate('/get-help'); 
+      navigate('/dashboard'); 
       
     } catch (err) {
       setError(err.message);
@@ -165,14 +167,12 @@ function GetHelp() {
   return (
     <div className="min-h-screen bg-slate-50 font-plus-jakarta py-12 px-6">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        
         <div className="bg-[#2e7d32] px-8 py-6 text-white">
           <h1 className="text-3xl font-bold mb-2">Request Help</h1>
           <p className="text-green-100">Fill out the details below so local volunteers can assist you.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          
           {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2 text-sm font-medium">
               <span className="material-symbols-outlined">error</span>
@@ -183,24 +183,11 @@ function GetHelp() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Task Title *</label>
-              <input
-                type="text"
-                name="title"
-                required
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g., Need help picking up groceries"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none transition-all"
-              />
+              <input type="text" name="title" required value={formData.title} onChange={handleChange} placeholder="e.g., Need help picking up groceries" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none transition-all" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Category *</label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none bg-white"
-              >
+              <select name="category" value={formData.category} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none bg-white">
                 <option value="Grocery Delivery">Grocery Delivery</option>
                 <option value="Medication Delivery">Medication Delivery</option>
                 <option value="Child Day Care">Child Day Care</option>
@@ -212,44 +199,18 @@ function GetHelp() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
-            <textarea
-              name="description"
-              required
-              rows="4"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Provide more details about what you need..."
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none transition-all resize-y"
-            ></textarea>
+            <textarea name="description" required rows="4" value={formData.description} onChange={handleChange} placeholder="Provide more details about what you need..." className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none transition-all resize-y"></textarea>
           </div>
 
-          {/* ==========================================
-              IMAGE UPLOAD FIELD
-              ========================================== */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Upload an Image (Optional)</label>
-            <input
-              type="file"
-              name="image"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none bg-white 
-                file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 
-                file:text-sm file:font-semibold file:bg-green-50 file:text-[#2e7d32] 
-                hover:file:bg-green-100 cursor-pointer"
-            />
-            <p className="text-xs text-slate-500 mt-1">Upload a photo if it helps explain your request.</p>
+            <input type="file" name="image" accept="image/*" onChange={handleFileChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-[#2e7d32] hover:file:bg-green-100 cursor-pointer" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Urgency Level</label>
-              <select
-                name="urgency"
-                value={formData.urgency}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none bg-white"
-              >
+              <select name="urgency" value={formData.urgency} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none bg-white">
                 <option value="Low">Low - Whenever possible</option>
                 <option value="Medium">Medium - Sometime soon</option>
                 <option value="High">High - Within 24 hours</option>
@@ -258,13 +219,7 @@ function GetHelp() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Due Date (Optional)</label>
-              <input
-                type="date"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none"
-              />
+              <input type="date" name="dueDate" value={formData.dueDate} onChange={handleChange} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none" />
             </div>
           </div>
 
@@ -275,54 +230,60 @@ function GetHelp() {
             </h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Street Address</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="123 Main St, Apt 4B"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none"
+              
+              {/* UPDATED ADDRESS INPUT WITH DROPDOWN */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Search Store or Street Address *</label>
+                <input 
+                  type="text" 
+                  name="address" 
+                  value={formData.address} 
+                  onChange={handleAddressChange} 
+                  placeholder="Type a location (e.g. Kathmandu, Sydney, 123 Main St)..." 
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2e7d32] outline-none" 
+                  autoComplete="off"
                 />
+                
+                {/* Suggestions Dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <ul className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {suggestions.map((suggestion) => (
+                      <li 
+                        key={suggestion.place_id}
+                        onClick={() => handleSelectSuggestion(suggestion)}
+                        className="px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-slate-100 last:border-b-0 text-sm text-slate-700 flex items-start gap-2"
+                      >
+                        <span className="material-symbols-outlined text-slate-400 text-[18px] mt-0.5">place</span>
+                        {suggestion.display_name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="flex items-center gap-4">
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                >
+                <span className="text-sm text-slate-500 font-medium">OR</span>
+                <button type="button" onClick={handleGetLocation} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]">my_location</span>
-                  Get My Location *
+                  Get My Current Location
                 </button>
-                
-                {formData.latitude && formData.longitude && (
+                {formData.latitude && formData.longitude && !showSuggestions && (
                   <span className="text-[#2e7d32] text-sm font-medium flex items-center gap-1">
                     <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                    Coordinates saved!
+                    Location set!
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500">
-                * Exact location is required so nearby volunteers can find your request.
-              </p>
+
             </div>
           </div>
 
           <div className="pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3 rounded-lg text-white font-bold text-lg transition-colors flex items-center justify-center gap-2 ${
-                loading ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#2e7d32] hover:bg-[#1b5e20]'
-              }`}
-            >
+            <button type="submit" disabled={loading} className={`w-full py-3 rounded-lg text-white font-bold text-lg transition-colors flex items-center justify-center gap-2 ${loading ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#2e7d32] hover:bg-[#1b5e20]'}`}>
               {loading ? 'Submitting...' : 'Post Request'}
               {!loading && <span className="material-symbols-outlined">send</span>}
             </button>
           </div>
-          
         </form>
       </div>
     </div>
