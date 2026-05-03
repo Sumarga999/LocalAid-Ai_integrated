@@ -61,7 +61,12 @@ const taskSchema = new mongoose.Schema(
     completedAt: {
       type: Date,
       default: null,
-    }
+    },
+    rating: { 
+    type: Number, 
+    min: 1, 
+    max: 5 
+  }
   },
   {
     timestamps: true, // Automatically handles exactly when it was posted

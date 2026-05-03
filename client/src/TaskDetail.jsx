@@ -8,6 +8,11 @@ function TaskDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // --- NEW: Rating Modal States ---
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
 
@@ -44,12 +49,14 @@ function TaskDetail() {
     }
   };
 
-  const handleComplete = async () => {
-    const confirmComplete = window.confirm("Mark as completed?");
-    if (!confirmComplete) return;
+  // --- UPDATED: Submits BOTH the completion and the rating ---
+  const submitCompletionAndRating = async () => {
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/tasks/${id}`, {
+      
+      // 1. Mark the task as completed
+      const taskResponse = await fetch(`http://localhost:5000/api/tasks/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -57,12 +64,33 @@ function TaskDetail() {
         },
         body: JSON.stringify({ status: 'completed' })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-      setTask(data); 
-      alert("Task completed!");
+      const taskData = await taskResponse.json();
+      if (!taskResponse.ok) throw new Error(taskData.message || 'Failed to complete task');
+
+      // 2. Submit the rating for the volunteer
+      if (task.volunteer) {
+        const volunteerId = task.volunteer._id || task.volunteer;
+        const rateResponse = await fetch(`http://localhost:5000/api/users/${volunteerId}/rate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ rating, taskId: id })
+        });
+        
+        if (!rateResponse.ok) {
+          console.error("Failed to submit rating, but task was completed.");
+        }
+      }
+
+      setTask(taskData); 
+      setShowRatingModal(false);
+      alert("Task completed and volunteer rated!");
     } catch (err) {
       alert(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,10 +107,7 @@ function TaskDetail() {
       if (!response.ok) throw new Error(data.message);
       
       alert("Assignment cancelled.");
-      
-      // CHANGE THIS PATH to whatever matches your App.js route for the Volunteer Dashboard
       navigate('/volunteer'); 
-      
     } catch (err) {
       alert(err.message);
     }
@@ -91,7 +116,6 @@ function TaskDetail() {
   if (loading) return <div className="p-10 text-center">Loading details...</div>;
   if (error || !task) return <div className="p-10 text-center text-red-500">Error: {error || "Task not found"}</div>;
 
-  // Safe ID extraction
   const currentUserId = user?._id?.toString() || user?.userId?.toString() || user?.id?.toString();
   const taskVolunteerId = task.volunteer?._id?.toString() || task.volunteer?.toString();
   const taskRequesterId = task.requester?._id?.toString() || task.requester?.toString();
@@ -99,7 +123,7 @@ function TaskDetail() {
   const isInvolved = currentUserId && (currentUserId === taskVolunteerId || currentUserId === taskRequesterId);
   
   return (
-    <div className="min-h-screen bg-slate-50 font-plus-jakarta pb-20">
+    <div className="min-h-screen bg-slate-50 font-plus-jakarta pb-20 relative">
       <div className="max-w-4xl mx-auto px-6 pt-10">
         
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 cursor-pointer">
@@ -174,15 +198,57 @@ function TaskDetail() {
                 </button>
               )}
 
-              {currentUserId === taskRequesterId && task.status !== 'completed' && (
-                <button onClick={handleComplete} className="flex-1 min-w-[200px] bg-white text-green-700 py-4 rounded-2xl font-bold border-2 border-green-600 cursor-pointer">
-                  Mark Complete
+              {/* UPDATED: Now opens the rating modal instead of instantly completing */}
+              {currentUserId === taskRequesterId && task.status === 'in-progress' && (
+                <button onClick={() => setShowRatingModal(true)} className="flex-1 min-w-[200px] bg-white text-green-700 py-4 rounded-2xl font-bold border-2 border-green-600 cursor-pointer hover:bg-green-50 transition-colors">
+                  Mark Complete & Rate
                 </button>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* --- NEW: Rating Modal --- */}
+      {showRatingModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-fade-in-up">
+            <h3 className="text-2xl font-bold text-slate-800 text-center mb-2">Rate Your Helper</h3>
+            <p className="text-slate-500 text-center text-sm mb-6">How was your experience with the volunteer?</p>
+            
+            <div className="flex justify-center gap-2 mb-8">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className={`text-5xl transition-all duration-200 hover:scale-110 ${rating >= star ? 'text-yellow-400 drop-shadow-md' : 'text-slate-200'}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowRatingModal(false)}
+                className="flex-1 py-3 font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={submitCompletionAndRating}
+                className="flex-1 py-3 font-bold text-white bg-[#2e7d32] rounded-xl hover:bg-[#1b5e20] transition-colors shadow-md flex items-center justify-center"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
