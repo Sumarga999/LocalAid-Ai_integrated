@@ -14,6 +14,7 @@ import ScrollToTop from './ScrollToTop';
 import FindTasks from './FindTasks';
 import TaskDetail from './TaskDetail';
 import RequesterDashboard from './RequesterDashboard'; 
+import EditTask from './EditTask';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="/volunteer" element={<Volunteer />} />
             <Route path="/get-help" element={<GetHelp />} />
             <Route path="/tasks" element={<FindTasks />} />
+            <Route path="/edit-task/:id" element={<EditTask />} />
             
             {/* These two routes connect your Dashboard and Task Details together! */}
             <Route path="/dashboard" element={<RequesterDashboard />} />
