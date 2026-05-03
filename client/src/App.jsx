@@ -15,6 +15,7 @@ import FindTasks from './FindTasks';
 import TaskDetail from './TaskDetail';
 import RequesterDashboard from './RequesterDashboard'; 
 import EditTask from './EditTask';
+import Chat from './Chat'; // <-- NEW: Imported the Chat component
 
 function App() {
   return (
@@ -42,6 +43,9 @@ function App() {
             {/* These two routes connect your Dashboard and Task Details together! */}
             <Route path="/dashboard" element={<RequesterDashboard />} />
             <Route path="/task/:id" element={<TaskDetail />} />
+            
+            {/* <-- NEW: Chat Route --> */}
+            <Route path="/chat/:taskId" element={<Chat />} />
           </Routes>
         </div>
         

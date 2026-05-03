@@ -170,7 +170,10 @@ function TaskDetail() {
               
               {/* Chat Button */}
               {isInvolved && (
-                <button className="flex-1 bg-[#2e7d32] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[#1b5e20] shadow-lg shadow-green-100 transition-all">
+                <button 
+                  onClick={() => navigate(`/chat/${id}`)} 
+                  className="flex-1 bg-[#2e7d32] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[#1b5e20] shadow-lg shadow-green-100 transition-all"
+                >
                   <span className="material-symbols-outlined">chat</span>
                   Message {currentUserId === taskRequesterId ? 'Volunteer' : 'Requester'}
                 </button>
@@ -194,6 +197,7 @@ function TaskDetail() {
               )}
 
               {/* Delete Button (Only visible to the Requester) */}
+              {/* NEW: Delete Button (Only visible to the Requester) */}
               {currentUserId === taskRequesterId && (
                 <button 
                   onClick={handleDelete}
