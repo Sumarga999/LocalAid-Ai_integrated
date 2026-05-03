@@ -9,29 +9,44 @@ function Home() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Check auth status and role for dynamic UI rendering
+  const storedUser = localStorage.getItem('user');
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const isLoggedIn = !!currentUser;
+  const isGetHelpUser = currentUser?.role === 'user'; // 'user' role = "get help"
+
   // 2. Setup state variables for our Dynamic Stats!
-  // These are placeholder numbers. Once your database is connected, 
-  // you will fetch the real numbers and update this state.
   const [stats, setStats] = useState({
     activeVolunteers: 0,
     tasksCompleted: 0,
-    activeTasks: 0 // Replaced "Volunteer Hours" with this!
+    activeTasks: 0
   });
 
-  // Example of how you will make this truly dynamic with your backend later:
+  // NEW: State for our dynamic tasks
+  const [urgentTasks, setUrgentTasks] = useState([]);
+
   useEffect(() => {
-    /* // WHEN YOUR MONGODB/BACKEND IS READY, UNCOMMENT THIS:
-      fetch('http://localhost:5000/api/stats')
-        .then(response => response.json())
-        .then(data => {
-          setStats({
-            activeVolunteers: data.totalUsers,
-            tasksCompleted: data.completedTasksCount,
-            activeTasks: data.openTasksCount
-          });
-        })
-        .catch(error => console.error("Error fetching stats:", error));
-    */
+    // Fetch real stats
+    fetch('http://localhost:5000/api/stats')
+      .then(response => response.json())
+      .then(data => {
+        setStats({
+          activeVolunteers: data.activeVolunteers || 0,
+          tasksCompleted: data.tasksCompleted || 0,
+          activeTasks: data.activeTasks || 0
+        });
+      })
+      .catch(error => console.error("Error fetching stats:", error));
+
+    // Fetch real tasks for the Urgent section
+    fetch('http://localhost:5000/api/tasks')
+      .then(response => response.json())
+      .then(data => {
+        // Filter for only 'open' tasks, and grab the first 3
+        const openTasks = data.filter(task => task.status === 'open').slice(0, 3);
+        setUrgentTasks(openTasks);
+      })
+      .catch(error => console.error("Error fetching tasks:", error));
   }, []);
 
   // Smooth scroll effect triggered when the URL has a hash
@@ -73,6 +88,28 @@ function Home() {
     navigate('/signup');
   };
 
+  // Custom logic for the "Help Now" button
+  const handleHelpNowClick = (taskId) => {
+    // If not logged in -> login page
+    if (!storedUser) {
+      navigate('/login');
+      return;
+    }
+
+    // If logged in as 'user' -> login page (as requested)
+    if (currentUser.role === 'user') {
+      navigate('/login');
+    } 
+    // If logged in as 'volunteer' -> task detail page
+    else if (currentUser.role === 'volunteer') {
+      navigate(`/task/${taskId}`);
+    } 
+    // Fallback
+    else {
+      navigate('/login');
+    }
+  };
+
   // Generate the map URL dynamically based on our state
   const mapUrl = `https://maps.google.com/maps?q=${mapCenter.lat},${mapCenter.lng}&z=${mapCenter.zoom}&output=embed`;
 
@@ -87,8 +124,13 @@ function Home() {
               Empowering neighborhoods through direct action. LocalAid connects those who can give with those who need help, building a more resilient community one task at a time.
             </p>
             <div className="flex flex-col sm:flex-row gap-md">
-              <button onClick={handleSignUpRedirect}
-              className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-8 py-4 rounded-lg font-headline-md text-headline-md shadow-lg transition-transform active:scale-95">Get Started</button>
+              
+              {/* Only show "Get Started" if the user is NOT logged in */}
+              {!isLoggedIn && (
+                <button onClick={handleSignUpRedirect}
+                className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-8 py-4 rounded-lg font-headline-md text-headline-md shadow-lg transition-transform active:scale-95">Get Started</button>
+              )}
+              
               <button onClick={() => {
                 const element = document.getElementById('urgent-requests');
                 if (element) element.scrollIntoView({ behavior: 'smooth' });
@@ -119,10 +161,9 @@ function Home() {
               <div className="font-label-md text-outline">Tasks Completed</div>
             </div>
             
-            {/* Active Tasks Stat (Replaced Volunteer Hours) */}
+            {/* Active Tasks Stat */}
             <div className="flex flex-col items-center text-center p-lg rounded-xl bg-surface-container-low">
               <div className="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center mb-md">
-                {/* Changed the icon from 'schedule' to 'assignment' to match the new stat */}
                 <span className="material-symbols-outlined text-tertiary" data-icon="assignment">assignment</span>
               </div>
               <div className="font-headline-lg text-primary">{stats.activeTasks}</div>
@@ -140,87 +181,63 @@ function Home() {
                 <h2 className="font-headline-lg text-headline-lg text-on-background mb-2">Urgent Requests</h2>
                 <p className="text-outline">Immediate needs in your local area that require support.</p>
               </div>
-              <Link to="/tasks" className="text-primary font-label-md flex items-center gap-2 hover:underline decoration-2 underline-offset-4">
-                View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
               
-              {/* Task Card 1 */}
-              <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-surface-variant overflow-hidden flex flex-col h-full">
-                <div className="p-lg flex-grow">
-                  <div className="flex justify-between items-start mb-md">
-                    <span className="bg-error-container text-on-error-container text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">High Priority</span>
-                    <span className="text-outline flex items-center gap-1 font-label-sm">
-                      <span className="material-symbols-outlined text-sm">schedule</span> 2h ago
-                    </span>
-                  </div>
-                  <h3 className="font-headline-md text-headline-md mb-sm">Grocery Shopping</h3>
-                  <p className="text-on-surface-variant body-md mb-lg">Elderly neighbor requires help picking up weekly groceries from the local market. Heavy lifting involved.</p>
-                  <div className="space-y-sm">
-                    <div className="flex items-center gap-2 text-outline font-label-md">
-                      <span className="material-symbols-outlined text-sm">location_on</span>
-                      Downtown, North Sector
+              {/* Disable View All link if user is 'user' (get help) */}
+              {isGetHelpUser ? (
+                <button 
+                  disabled 
+                  title="Taskboard is available for volunteers"
+                  className="text-slate-400 font-label-md flex items-center gap-2 cursor-not-allowed opacity-60"
+                >
+                  View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </button>
+              ) : (
+                <Link to="/tasks" className="text-primary font-label-md flex items-center gap-2 hover:underline decoration-2 underline-offset-4">
+                  View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </Link>
+              )}
+
+            </div>
+            
+            {/* DYNAMIC Tasks Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
+              {urgentTasks.length > 0 ? (
+                urgentTasks.map((task) => (
+                  <div key={task._id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-surface-variant overflow-hidden flex flex-col h-full">
+                    <div className="p-lg flex-grow">
+                      <div className="flex justify-between items-start mb-md">
+                        <span className="bg-error-container text-on-error-container text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                          {task.urgency || 'High Priority'}
+                        </span>
+                        <span className="text-outline flex items-center gap-1 font-label-sm">
+                          <span className="material-symbols-outlined text-sm">schedule</span> 
+                          {new Date(task.createdAt || Date.now()).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h3 className="font-headline-md text-headline-md mb-sm">{task.title}</h3>
+                      <p className="text-on-surface-variant body-md mb-lg line-clamp-3">{task.description}</p>
+                      <div className="space-y-sm">
+                        <div className="flex items-center gap-2 text-outline font-label-md">
+                          <span className="material-symbols-outlined text-sm">location_on</span>
+                          <span className="line-clamp-1">{task.location?.address || 'Location Hidden'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-lg pt-0">
+                      <button 
+                        onClick={() => handleHelpNowClick(task._id)} 
+                        className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2"
+                      >
+                        Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
+                      </button>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10 text-outline">
+                  No urgent tasks right now. Check back later!
                 </div>
-                <div className="p-lg pt-0">
-                  <Link to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
-                    Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Task Card 2 */}
-              <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-surface-variant overflow-hidden flex flex-col h-full">
-                <div className="p-lg flex-grow">
-                  <div className="flex justify-between items-start mb-md">
-                    <span className="bg-error-container text-on-error-container text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">High Priority</span>
-                    <span className="text-outline flex items-center gap-1 font-label-sm">
-                      <span className="material-symbols-outlined text-sm">schedule</span> 4h ago
-                    </span>
-                  </div>
-                  <h3 className="font-headline-md text-headline-md mb-sm">After-School Childcare</h3>
-                  <p className="text-on-surface-variant body-md mb-lg">A single parent needs emergency assistance watching two school-aged children for two hours this evening.</p>
-                  <div className="space-y-sm">
-                    <div className="flex items-center gap-2 text-outline font-label-md">
-                      <span className="material-symbols-outlined text-sm">location_on</span>
-                      Maplewood Estates
-                    </div>
-                  </div>
-                </div>
-                <div className="p-lg pt-0">
-                  <Link to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
-                    Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Task Card 3 */}
-              <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-surface-variant overflow-hidden flex flex-col h-full">
-                <div className="p-lg flex-grow">
-                  <div className="flex justify-between items-start mb-md">
-                    <span className="bg-error-container text-on-error-container text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">High Priority</span>
-                    <span className="text-outline flex items-center gap-1 font-label-sm">
-                      <span className="material-symbols-outlined text-sm">schedule</span> 1h ago
-                    </span>
-                  </div>
-                  <h3 className="font-headline-md text-headline-md mb-sm">Pharmacy Pickup</h3>
-                  <p className="text-on-surface-variant body-md mb-lg">Urgent pickup of essential medication for a resident currently unable to leave their home due to mobility issues.</p>
-                  <div className="space-y-sm">
-                    <div className="flex items-center gap-2 text-outline font-label-md">
-                      <span className="material-symbols-outlined text-sm">location_on</span>
-                      Riverside Clinic Area
-                    </div>
-                  </div>
-                </div>
-                <div className="p-lg pt-0">
-                  <Link to="/signup" className="w-full bg-primary hover:bg-primary-container text-white py-3 rounded-lg font-label-md transition-colors flex items-center justify-center gap-2">
-                    Help Now <span className="material-symbols-outlined text-sm">volunteer_activism</span>
-                  </Link>
-                </div>
-              </div>
-
+              )}
             </div>
           </div>
         </section>
@@ -268,15 +285,17 @@ function Home() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-xxl px-6 bg-primary text-white">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="font-headline-lg text-headline-xl mb-md">Ready to Make a Difference?</h2>
-            <p className="font-body-lg text-body-lg mb-xl opacity-90">Join thousands of your neighbors who are already making our community a better place to live. Sign up takes less than two minutes.</p>
-            <button onClick={handleSignUpRedirect}
-            className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-12 py-5 rounded-xl font-headline-md text-headline-md shadow-xl transition-all hover:-translate-y-1 active:scale-95">Sign Up Now</button>
-          </div>
-        </section>
+        {/* CTA Section - Hide completely if user is logged in */}
+        {!isLoggedIn && (
+          <section className="py-xxl px-6 bg-primary text-white">
+            <div className="max-w-4xl mx-auto text-center">
+              <h2 className="font-headline-lg text-headline-xl mb-md">Ready to Make a Difference?</h2>
+              <p className="font-body-lg text-body-lg mb-xl opacity-90">Join thousands of your neighbors who are already making our community a better place to live. Sign up takes less than two minutes.</p>
+              <button onClick={handleSignUpRedirect}
+              className="bg-secondary-container hover:bg-secondary text-on-secondary-container px-12 py-5 rounded-xl font-headline-md text-headline-md shadow-xl transition-all hover:-translate-y-1 active:scale-95">Sign Up Now</button>
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
+import Task from './models/Task.js';
+import User from './models/User.js';
 
 dotenv.config();
 
@@ -30,6 +32,23 @@ app.get('/api/health', (req, res) => {
 
 // Define the port 
 const PORT = process.env.PORT || 5000;
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    const activeVolunteers = await User.countDocuments({ role: 'volunteer' }); 
+    const tasksCompleted = await Task.countDocuments({ status: 'completed' });
+    const activeTasks = await Task.countDocuments({ status: { $in: ['open', 'in-progress'] } });
+
+    res.json({
+      activeVolunteers,
+      tasksCompleted,
+      activeTasks
+    });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ message: 'Server error fetching stats' });
+  }
+});
 
 // Start the server
 app.listen(PORT, () => {

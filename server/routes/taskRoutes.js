@@ -148,4 +148,33 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ message: "Server error fetching task details" });
   }
 });
+
+// DELETE a task by ID (Protected by authMiddleware)
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const taskId = req.params.id;
+
+    // 1. Check if the task exists
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    
+    const currentUserId = req.user.userId || req.user.id || req.user._id; 
+    
+    if (task.requester.toString() !== currentUserId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this task' });
+    }
+
+    // 3. Delete the task
+    await Task.findByIdAndDelete(taskId);
+
+    // 4. Send success response back to the frontend
+    res.status(200).json({ message: 'Task deleted successfully' });
+
+  } catch (error) {
+    console.error("Error deleting task:", error);
+    res.status(500).json({ message: 'Server error while deleting task' });
+  }
+});
 export default router;
