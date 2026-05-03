@@ -12,6 +12,7 @@ import GetHelp from './GetHelp';
 import OurImpact from './OurImpact';
 import ScrollToTop from './ScrollToTop';
 import FindTasks from './FindTasks';
+import TaskDetail from './TaskDetail';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/volunteer" element={<Volunteer />} />
             <Route path="/get-help" element={<GetHelp />} />
             <Route path="/tasks" element={<FindTasks />} />
+            <Route path="/task/:id" element={<TaskDetail />} />
           </Routes>
         </div>
         

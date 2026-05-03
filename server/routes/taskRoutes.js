@@ -130,4 +130,22 @@ router.put('/:id/accept', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server Error while accepting task' });
   }
 });
+
+router.get('/:id', async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id)
+    .populate('requester', 'name') 
+      .populate('volunteer', 'name');
+    
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // This sends EVERYTHING (images, status, volunteer ID) to the frontend
+    res.json(task);
+  } catch (error) {
+    console.error("Error fetching task:", error);
+    res.status(500).json({ message: "Server error fetching task details" });
+  }
+});
 export default router;

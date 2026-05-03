@@ -134,27 +134,62 @@ function Volunteer() {
           ) : displayedTasks.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {displayedTasks.map(task => (
-                <div key={task._id} className="border border-slate-200 p-5 rounded-xl hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-slate-900">{task.title}</h3>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {task.status === 'in-progress' ? 'In Progress' : 'Completed'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-4 line-clamp-2">{task.description}</p>
-                  
-                  {/* CRITICAL: Show Exact Address for Volunteers */}
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex gap-2 items-start text-sm text-slate-700">
-                    <span className="material-symbols-outlined text-[18px] text-[#2e7d32] mt-0.5">location_on</span>
-                    <div>
-                      <span className="font-semibold block mb-0.5">Exact Address:</span>
-                      {task.location?.address || 'Address missing'}
-                    </div>
-                  </div>
-                </div>
-              ))}
+  <Link 
+    to={`/task/${task._id}`} 
+    key={task._id} 
+    className="block group"
+  >
+    <div className="border border-slate-200 rounded-xl hover:shadow-md transition-all bg-white overflow-hidden flex flex-col h-full">
+      
+      {/* 1. Task Image Thumbnail */}
+      <div className="h-40 bg-slate-100 overflow-hidden relative">
+        {task.images && task.images.length > 0 ? (
+          <img 
+            src={task.images[0]} 
+            alt={task.title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+            <span className="material-symbols-outlined text-3xl">image</span>
+            <span className="text-xs uppercase font-bold tracking-wider">No Image</span>
+          </div>
+        )}
+        
+        {/* Status Badge Over Image */}
+        <div className="absolute top-3 right-3">
+          <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md shadow-sm ${
+            task.status === 'completed' ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+          }`}>
+            {task.status === 'in-progress' ? 'In Progress' : 'Completed'}
+          </span>
+        </div>
+      </div>
+
+      {/* 2. Task Content */}
+      <div className="p-5 flex flex-col flex-grow">
+        <h3 className="font-bold text-lg text-slate-900 group-hover:text-[#2e7d32] transition-colors mb-2">
+          {task.title}
+        </h3>
+        
+        <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+          {task.description}
+        </p>
+        
+        {/* 3. Address Section (Sticks to bottom) */}
+        <div className="mt-auto">
+          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex gap-2 items-start text-sm text-slate-700">
+            <span className="material-symbols-outlined text-[18px] text-[#2e7d32] mt-0.5">location_on</span>
+            <div>
+              <span className="font-semibold block text-[12px] text-slate-500">EXACT ADDRESS:</span>
+              <span className="line-clamp-1">{task.location?.address || 'Address missing'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Link>
+))}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-center py-10">
