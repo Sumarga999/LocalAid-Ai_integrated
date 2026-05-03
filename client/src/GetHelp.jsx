@@ -35,16 +35,54 @@ function GetHelp() {
     setImageFile(e.target.files[0]); // Grab the first file the user selects
   };
 
-  // Grab the user's GPS coordinates using the browser's Geolocation API
+  // ==========================================
+  // UPDATED: Grab GPS & Convert to Comma Address
+  // ==========================================
   const handleGetLocation = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData({
-            ...formData,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          
+          try {
+            // Fetch the human-readable address from OpenStreetMap (Free API)
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+            const data = await response.json();
+            
+            let finalAddress = formData.address;
+            
+            if (data && data.address) {
+              const { house_number, road, neighbourhood, suburb, city, town, village, state } = data.address;
+              
+              // Combine available parts into an array, then join them with commas!
+              const addressParts = [
+                house_number ? `${house_number} ${road || ''}`.trim() : road,
+                neighbourhood || suburb,
+                city || town || village,
+                state
+              ].filter(Boolean); // removes any undefined/empty parts
+              
+              finalAddress = addressParts.join(', ');
+            }
+
+            // Update state safely with the newly formatted comma address
+            setFormData(prev => ({
+              ...prev,
+              latitude: lat,
+              longitude: lon,
+              address: finalAddress
+            }));
+
+          } catch (err) {
+            console.error("Error converting coordinates to address:", err);
+            // Fallback: just save the coordinates if the API fails
+            setFormData(prev => ({
+              ...prev,
+              latitude: lat,
+              longitude: lon,
+            }));
+          }
         },
         (err) => {
           console.error("Error getting location:", err);

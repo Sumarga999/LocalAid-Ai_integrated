@@ -66,4 +66,68 @@ router.post('/', authMiddleware, upload.single('image'), async (req, res) => {
   }
 });
 
+// PURPOSE: Fetch all tasks for the volunteer feed
+router.get('/', async (req, res) => {
+  try {
+    const tasks = await Task.find().sort({ createdAt: -1 });
+    
+    res.status(200).json(tasks);
+  } catch (error) {
+    console.error('Error fetching all tasks:', error);
+    res.status(500).json({ message: 'Server error while fetching tasks.' });
+  }
+});
+
+// PURPOSE: Fetch only tasks created by the logged-in user for their Dashboard
+router.get('/my-reports', authMiddleware, async (req, res) => {
+  try {
+    const userTasks = await Task.find({ requester: req.user.userId }).sort({ createdAt: -1 });
+    
+    res.status(200).json(userTasks);
+  } catch (error) {
+    console.error('Error fetching user tasks:', error);
+    res.status(500).json({ message: 'Server error while fetching your tasks.' });
+  }
+});
+
+// PUT: Accept a task
+// Ensure you have your authentication middleware (e.g., verifyToken) protecting this route!
+router.put('/:id/accept', authMiddleware, async (req, res) => {
+  try {
+    // 1. Find the task by the ID in the URL
+    const task = await Task.findById(req.params.id);
+    
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // 2. Check if it's already accepted by someone else
+    if (task.volunteer) {
+      return res.status(400).json({ message: 'This task has already been accepted.' });
+    }
+
+    // 3. Optional: Prevent the requester from accepting their own task
+    if (task.requester.toString() === req.user.id) {
+      return res.status(400).json({ message: 'You cannot accept a task you created.' });
+    }
+
+    // 4. Update the task with the volunteer's ID
+    // Note: 'req.user.id' comes from your decoded JWT token
+    task.volunteer = req.user.id;
+    
+    // If you have a status field in your schema, update it too
+    if (task.status !== undefined) {
+      task.status = 'in-progress'; 
+    }
+
+    const updatedTask = await task.save();
+    
+    // Send the updated task back to the frontend
+    res.json(updatedTask);
+
+  } catch (error) {
+    console.error("Error accepting task:", error);
+    res.status(500).json({ message: 'Server Error while accepting task' });
+  }
+});
 export default router;
