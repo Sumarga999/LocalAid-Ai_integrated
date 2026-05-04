@@ -116,8 +116,8 @@ function Home() {
   return (
     <div className="bg-surface font-body-md text-on-surface">
       <main>
-        {/* Hero Section */}
-        <section className="hero-gradient text-white py-xxl px-6">
+        {/* Updated Hero Section: Removed image gradient, using flat brand green */}
+        <section className="bg-primary text-white py-xxl px-6">
           <div className="max-w-7xl mx-auto flex flex-col items-center text-center">
             <h1 className="font-headline-xl text-headline-xl mb-md max-w-3xl">Stronger Together</h1>
             <p className="font-body-lg text-body-lg text-on-primary-container mb-xl max-w-2xl opacity-90">
