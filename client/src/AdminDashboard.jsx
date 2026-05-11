@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [pendingVolunteers, setPendingVolunteers] = useState([]); // NEW: State for approvals
   const [activeTab, setActiveTab] = useState('tasks');
   const [loading, setLoading] = useState(true);
   
@@ -34,14 +35,17 @@ function AdminDashboard() {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const [usersRes, tasksRes] = await Promise.all([
+      // Updated to fetch users, tasks, AND pending volunteers
+      const [usersRes, tasksRes, pendingRes] = await Promise.all([
         fetch('http://localhost:5000/api/admin/users', { headers }),
-        fetch('http://localhost:5000/api/admin/tasks', { headers })
+        fetch('http://localhost:5000/api/admin/tasks', { headers }),
+        fetch('http://localhost:5000/api/admin/pending-volunteers', { headers })
       ]);
 
-      if (usersRes.ok && tasksRes.ok) {
+      if (usersRes.ok && tasksRes.ok && pendingRes.ok) {
         setUsers(await usersRes.json());
         setTasks(await tasksRes.json());
+        setPendingVolunteers(await pendingRes.json());
       } else {
         throw new Error("Failed to fetch admin data");
       }
@@ -49,6 +53,33 @@ function AdminDashboard() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NEW: Approval Handler
+  const handleApproveStatus = async (id, status) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/update-status/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ status })
+      });
+      if (response.ok) {
+        // Refresh the list after approval/rejection
+        setPendingVolunteers(pendingVolunteers.filter(v => v._id !== id));
+        // Also refresh users list so they appear in "Manage Users"
+        const usersRes = await fetch('http://localhost:5000/api/admin/users', { 
+            headers: { 'Authorization': `Bearer ${token}` } 
+        });
+        setUsers(await usersRes.json());
+        alert(`Volunteer ${status}!`);
+      }
+    } catch (err) {
+      alert("Failed to update status.");
     }
   };
 
@@ -140,6 +171,13 @@ function AdminDashboard() {
           >
             Manage Users ({users.length})
           </button>
+          {/* NEW TAB BUTTON */}
+          <button 
+            onClick={() => setActiveTab('approvals')}
+            className={`px-4 py-2 font-bold rounded-t-lg transition-colors ${activeTab === 'approvals' ? 'text-orange-700 border-b-2 border-orange-700 bg-orange-50' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
+          >
+            Approvals ({pendingVolunteers.length})
+          </button>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -180,7 +218,6 @@ function AdminDashboard() {
           {/* USERS TAB */}
           {activeTab === 'users' && (
             <div>
-              {/* Action Bar */}
               <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
                 <span className="text-sm text-slate-500 font-medium">Viewing all registered platform users.</span>
                 <button 
@@ -192,7 +229,6 @@ function AdminDashboard() {
                 </button>
               </div>
 
-              {/* Create Admin Form Dropdown */}
               {showAdminForm && (
                 <div className="p-6 bg-slate-100 border-b border-slate-200">
                   <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -252,6 +288,46 @@ function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* NEW: APPROVALS TAB CONTENT */}
+          {activeTab === 'approvals' && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
+                    <th className="p-4 border-b">Volunteer Name</th>
+                    <th className="p-4 border-b">Email</th>
+                    <th className="p-4 border-b text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingVolunteers.map(v => (
+                    <tr key={v._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="p-4 font-medium text-slate-800">{v.name}</td>
+                      <td className="p-4 text-sm text-slate-600">{v.email}</td>
+                      <td className="p-4 text-right space-x-3">
+                        <button 
+                          onClick={() => handleApproveStatus(v._id, 'approved')}
+                          className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-green-700 transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button 
+                          onClick={() => handleApproveStatus(v._id, 'rejected')}
+                          className="bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {pendingVolunteers.length === 0 && (
+                <div className="p-10 text-center text-slate-400 font-medium">No volunteers waiting for approval.</div>
+              )}
             </div>
           )}
 

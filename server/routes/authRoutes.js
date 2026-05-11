@@ -6,24 +6,18 @@ import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Route: POST /api/auth/signup
-// Purpose: Register a new user
 router.post('/signup', async (req, res) => {
   try {
-    // 1. Grab the data sent from your React frontend
     const { name, email, password, role } = req.body;
 
-    // 2. Check if a user with this email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'A user with this email already exists.' });
     }
 
-    // 3. Hash the password
-    const salt = await bcrypt.genSalt(10); // Generates a random string to mix with the password
-    const hashedPassword = await bcrypt.hash(password, salt); // Scrambles it
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4. Create the new user with the hashed password
     const newUser = new User({
       name,
       email,
@@ -31,10 +25,8 @@ router.post('/signup', async (req, res) => {
       role
     });
 
-    // 5. Save the user to MongoDB
     await newUser.save();
 
-    // 6. Send a success message back to React
     res.status(201).json({ message: 'User created successfully!' });
 
   } catch (error) {
@@ -43,10 +35,8 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// Route: POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    // 1. Grab the role from the frontend alongside email and password
     const { email, password, role } = req.body;
 
     const user = await User.findOne({ email });
@@ -59,12 +49,19 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password.' });
     }
 
-    // 2. NEW: Check if the role they selected matches their account in the database!
     if (user.role !== role) {
       const correctRole = user.role === 'volunteer' ? 'Volunteer' : 'Get Help';
       return res.status(403).json({ 
         message: `Account mismatch. Please log in as a ${correctRole}.` 
       });
+    }
+
+    // --- ADDED FEATURE: Approval Check ---
+    if (user.role === 'volunteer' && user.status === 'pending') {
+      return res.status(403).json({ message: 'Your account is pending admin approval.' });
+    }
+    if (user.role === 'volunteer' && user.status === 'rejected') {
+      return res.status(403).json({ message: 'Your volunteer account has been rejected.' });
     }
 
     const payload = {
@@ -101,14 +98,12 @@ router.post('/:id/rate', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Add the new rating to the array
     userToRate.ratings.push({
       rating: Number(rating),
       reviewer: req.user.userId || req.user._id,
       task: taskId
     });
 
-    // Calculate the new average
     const total = userToRate.ratings.reduce((sum, item) => sum + item.rating, 0);
     userToRate.averageRating = total / userToRate.ratings.length;
 
@@ -123,4 +118,5 @@ router.post('/:id/rate', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error while submitting rating' });
   }
 });
+
 export default router;

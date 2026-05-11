@@ -7,7 +7,6 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if the user is logged in every time the URL changes
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -17,19 +16,18 @@ function Navbar() {
     }
   }, [location]);
 
-  // Handle the logout process
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    navigate('/'); // Send them back to the homepage
+    navigate('/'); 
   };
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-100">
       <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
         
-        {/* LOGO - Always visible, using your custom image */}
+        {/* LOGO */}
         <Link to="/" className="flex-shrink-0">
           <img 
             src={logo} 
@@ -42,33 +40,44 @@ function Navbar() {
           <>
             <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
               
-              {/* Dynamic First Link: Report vs Find Tasks */}
-              {user.role === 'getHelp' ? (
-                <Link className="text-slate-600 hover:text-green-700 transition-colors" to="/get-help">
-                  Report
-                </Link>
+              {/* --- CONDITION: Hide these links if Admin --- */}
+              {user.role !== 'admin' ? (
+                <>
+                  {user.role === 'getHelp' ? (
+                    <Link className="text-slate-600 hover:text-green-700 transition-colors" to="/get-help">
+                      Report
+                    </Link>
+                  ) : (
+                    <Link className="text-slate-600 hover:text-green-700 transition-colors flex items-center gap-1" to="/tasks">
+                      Find Tasks
+                    </Link>
+                  )}
+
+                  <Link className="text-slate-600 hover:text-green-700 transition-colors" to="/ourimpact">
+                    Our Impact
+                  </Link>
+                  
+                  <Link 
+                    className="text-[#2e7d32] hover:text-[#1b5e20] transition-colors flex items-center gap-1 font-bold" 
+                    to={user.role === 'volunteer' ? '/volunteer' : '/dashboard'}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">dashboard</span> My Dashboard
+                  </Link>
+                </>
               ) : (
-                <Link className="text-slate-600 hover:text-green-700 transition-colors flex items-center gap-1" to="/tasks">
-                  Find Tasks
+                /* --- SHOW ONLY THIS FOR ADMIN --- */
+                <Link> 
                 </Link>
               )}
-
-              <Link className="text-slate-600 hover:text-green-700 transition-colors" to="/ourimpact">
-                Our Impact
-              </Link>
-              
-              {/* Dynamic Dashboard Link */}
-              <Link 
-                className="text-[#2e7d32] hover:text-[#1b5e20] transition-colors flex items-center gap-1 font-bold" 
-                to={user.role === 'volunteer' ? '/volunteer' : '/dashboard'}
-              >
-                <span className="material-symbols-outlined text-[20px]">dashboard</span> My Dashboard
-              </Link>
             </nav>
 
             <div className="flex items-center gap-4">
-              <div className="bg-[#e8f5e9] text-[#2e7d32] px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 capitalize shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">account_circle</span>
+              <div className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 capitalize shadow-sm ${
+                user.role === 'admin' ? 'bg-red-50 text-red-600' : 'bg-[#e8f5e9] text-[#2e7d32]'
+              }`}>
+                <span className="material-symbols-outlined text-[18px]">
+                  {user.role === 'admin' ? 'shield' : 'account_circle'}
+                </span>
                 {user.role === 'getHelp' ? 'Get Help' : user.role}
               </div>
               <button 
@@ -81,6 +90,7 @@ function Navbar() {
             </div>
           </>
         ) : (
+          /* --- LOGGED OUT VIEW --- */
           <>
             <nav className="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium">
               <Link className="text-slate-600 hover:text-green-700 transition-colors flex items-center gap-1" to="/tasks">

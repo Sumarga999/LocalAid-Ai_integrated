@@ -10,19 +10,27 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true, // Prevents two users from signing up with the same email
+      unique: true, 
       trim: true,
       lowercase: true,
     },
     password: {
       type: String,
       required: true,
-      minlength: 6, // Basic security rule
+      minlength: 6,
     },
     role: {
       type: String,
-      enum: ['volunteer', 'getHelp', 'admin'], // Restricts roles to exactly these two options from your frontend
+      enum: ['volunteer', 'getHelp', 'admin'],
       default: 'volunteer',
+    },
+    // --- ADDED FEATURE: Status for Admin Approval ---
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: function() {
+        return this.role === 'volunteer' ? 'pending' : 'approved';
+      }
     },
     ratings: [
     {
@@ -34,7 +42,7 @@ const userSchema = new mongoose.Schema(
   averageRating: { type: Number, default: 0 },
   },
   {
-    timestamps: true, // Automatically adds a 'createdAt' and 'updatedAt' date to every user!
+    timestamps: true,
   }
 );
 
