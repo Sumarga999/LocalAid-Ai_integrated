@@ -14,6 +14,9 @@ function TaskDetail() {
   const [review, setReview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- NEW: Popup State ---
+  const [showPopup, setShowPopup] = useState(false);
+
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
 
@@ -147,11 +150,36 @@ function TaskDetail() {
   const taskRequesterId = task.requester?._id?.toString() || task.requester?.toString();
   const isInvolved = currentUserId === taskVolunteerId || currentUserId === taskRequesterId;
 
-  // Check if there are uploaded images
   const hasImages = task.images && task.images.length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-plus-jakarta pb-20 pt-10">
+    <div className="min-h-screen bg-slate-50 font-plus-jakarta pb-20 pt-10 relative">
+      
+      {/* --- IMAGE/NO-IMAGE POPUP MODAL --- */}
+      {showPopup && (
+        <div 
+          className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setShowPopup(false)}
+        >
+          <span className="material-symbols-outlined absolute top-10 right-10 text-white text-4xl">close</span>
+          
+          {hasImages ? (
+            <img 
+              src={task.images[0]} 
+              alt="Full view" 
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            />
+          ) : (
+            /* Popup view when NO image exists */
+            <div className="flex flex-col items-center justify-center text-slate-500 bg-white p-16 rounded-3xl shadow-xl">
+              <span className="material-symbols-outlined text-[100px] mb-4 opacity-50">image</span>
+              <span className="font-bold text-xl opacity-70">No images published</span>
+              <p className="text-slate-400 mt-2">The requester did not upload any images for this task.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto px-6">
         
         {/* Back Button */}
@@ -162,18 +190,22 @@ function TaskDetail() {
         {/* Main Card Container */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
           
-          {/* Image Section - Same width as the card */}
-          <div className="w-full h-64 md:h-[400px] bg-[#f4f6f9] flex items-center justify-center border-b border-slate-100">
+          {/* Image Section - Always clickable now */}
+          <div 
+            className="w-full h-64 md:h-[400px] bg-[#f4f6f9] flex items-center justify-center border-b border-slate-100 cursor-pointer"
+            onClick={() => setShowPopup(true)} // Always allow opening the popup
+          >
             {hasImages ? (
               <img 
                 src={task.images[0]} 
                 alt="Task cover" 
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover hover:opacity-95 transition-opacity" 
               />
             ) : (
-              <div className="flex flex-col items-center justify-center text-[#94a3b8]">
-                <span className="material-symbols-outlined text-[64px] mb-2 opacity-60">image</span>
-                <span className="font-bold text-sm opacity-80">No images</span>
+              /* Inline view when NO image exists */
+              <div className="flex flex-col items-center justify-center text-[#94a3b8] hover:text-slate-500 transition-colors">
+                <span className="material-symbols-outlined text-[64px] mb-2 opacity-60 group-hover:opacity-100">image</span>
+                <span className="font-bold text-sm opacity-80 group-hover:opacity-100">No images (Click to view)</span>
               </div>
             )}
           </div>
@@ -234,7 +266,6 @@ function TaskDetail() {
             {/* ACTION BUTTONS */}
             <div className="mt-12 flex flex-wrap gap-4 pt-8 border-t border-slate-100">
               
-              {/* Edit & Delete Buttons for Requester (ONLY if status is OPEN) */}
               {currentUserId === taskRequesterId && task.status === 'open' && (
                 <>
                   <button onClick={() => navigate(`/edit-task/${id}`)} className="flex-1 min-w-[180px] bg-blue-50 text-blue-700 py-4 rounded-2xl font-bold border border-blue-100 hover:bg-blue-100 transition-all cursor-pointer flex items-center justify-center gap-2">
@@ -243,7 +274,7 @@ function TaskDetail() {
                   <button onClick={handleDelete} className="flex-1 min-w-[180px] bg-red-50 text-red-600 py-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 transition-all cursor-pointer flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined">delete</span> Delete Task
                   </button>
-                </>
+                </    >
               )}
 
               {isInvolved && task.status !== 'completed' && (
@@ -260,7 +291,7 @@ function TaskDetail() {
                   <button onClick={handleCancelHelp} className="flex-1 min-w-[180px] bg-red-50 text-red-600 py-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 transition-all cursor-pointer">
                     Cancel Help
                   </button>
-                </>
+                </    >
               )}
 
               {task.status === 'pending-completion' && currentUserId === taskVolunteerId && (
@@ -281,7 +312,6 @@ function TaskDetail() {
             {task.status === 'completed' && currentUserId === taskRequesterId && (
               <div className="mt-10 pt-10 border-t border-slate-100">
                 {!task.rating ? (
-                  /* FORM VIEW */
                   <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-center animate-in fade-in duration-500 max-w-2xl mx-auto">
                     <h3 className="text-xl font-bold text-slate-900 mb-2">Rate the Volunteer</h3>
                     <p className="text-slate-500 text-sm mb-6">How was your experience with the volunteer's help?</p>
@@ -324,7 +354,6 @@ function TaskDetail() {
                     </button>
                   </div>
                 ) : (
-                  /* SUCCESS VIEW */
                   <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm text-center animate-in zoom-in duration-500 max-w-2xl mx-auto">
                     <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="material-symbols-outlined">check_circle</span>
@@ -348,7 +377,6 @@ function TaskDetail() {
               </div>
             )}
 
-            {/* VOLUNTEER VIEW: Show them their rating if it exists */}
             {task.rating && currentUserId === taskVolunteerId && (
               <div className="mt-10 pt-10 border-t border-slate-100">
                 <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-center max-w-2xl mx-auto">
