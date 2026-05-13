@@ -14,8 +14,13 @@ function TaskDetail() {
   const [review, setReview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- NEW: Popup State ---
+  // --- Image Popup State ---
   const [showPopup, setShowPopup] = useState(false);
+
+  // --- Deny Reasoning Modal State ---
+  const [showDenyModal, setShowDenyModal] = useState(false);
+  const [rejectionInput, setRejectionInput] = useState("");
+  const [isDenying, setIsDenying] = useState(false);
 
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
@@ -95,12 +100,17 @@ function TaskDetail() {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/tasks/${id}/request-completion`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ completionNote: "" })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
       
-      setTask(prevTask => ({ ...prevTask, status: 'pending-completion' }));
+      setTask(data);
+      alert("Task marked as finished! Waiting for requester approval.");
     } catch (err) {
       alert(err.message);
     }
@@ -121,9 +131,42 @@ function TaskDetail() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
       
-      setTask(prevTask => ({ ...prevTask, status: 'completed' }));
+      setTask(data);
     } catch (err) {
       alert(err.message);
+    }
+  };
+
+  const handleDenyCompletion = () => {
+    setShowDenyModal(true);
+  };
+
+  // --- UPDATED: Submits denial and the task resets to "open" ---
+  const submitDenyCompletion = async () => {
+    if (!rejectionInput.trim()) return alert("Please provide a reason.");
+    
+    setIsDenying(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/tasks/${id}/reject`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ rejectionReason: rejectionInput })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      
+      setTask(data); // This will now show status as 'open'
+      setShowDenyModal(false);
+      setRejectionInput("");
+      alert("Completion denied. The task is now OPEN again for other volunteers.");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsDenying(false);
     }
   };
 
@@ -155,69 +198,85 @@ function TaskDetail() {
   return (
     <div className="min-h-screen bg-slate-50 font-plus-jakarta pb-20 pt-10 relative">
       
-      {/* --- IMAGE/NO-IMAGE POPUP MODAL --- */}
+      {/* --- CUSTOM POPUP MODAL FOR DENYING COMPLETION --- */}
+      {showDenyModal && (
+        <div className="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-red-500">report</span>
+                        Deny Completion
+                    </h3>
+                    <button onClick={() => setShowDenyModal(false)} className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div className="p-6">
+                    <p className="text-sm text-slate-500 mb-4">Explain why you are rejecting the completion. The task will be reset to open for others.</p>
+                    <textarea 
+                        className="w-full p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-red-500 outline-none text-sm min-h-[120px] transition-all"
+                        placeholder="e.g. The work was not completed as requested..."
+                        value={rejectionInput}
+                        onChange={(e) => setRejectionInput(e.target.value)}
+                    />
+                </div>
+                <div className="p-6 bg-slate-50 flex gap-3">
+                    <button 
+                        onClick={() => setShowDenyModal(false)}
+                        className="flex-1 py-3 font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-all border-none cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        disabled={isDenying}
+                        onClick={submitDenyCompletion}
+                        className={`flex-1 py-3 font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all border-none cursor-pointer shadow-lg shadow-red-100 ${isDenying ? 'opacity-50' : ''}`}
+                    >
+                        {isDenying ? 'Submitting...' : 'Deny & Reset to Open'}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* --- IMAGE POPUP MODAL --- */}
       {showPopup && (
         <div 
           className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4 cursor-pointer"
           onClick={() => setShowPopup(false)}
         >
           <span className="material-symbols-outlined absolute top-10 right-10 text-white text-4xl">close</span>
-          
           {hasImages ? (
-            <img 
-              src={task.images[0]} 
-              alt="Full view" 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            />
+            <img src={task.images[0]} alt="Full view" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"/>
           ) : (
-            /* Popup view when NO image exists */
             <div className="flex flex-col items-center justify-center text-slate-500 bg-white p-16 rounded-3xl shadow-xl">
               <span className="material-symbols-outlined text-[100px] mb-4 opacity-50">image</span>
               <span className="font-bold text-xl opacity-70">No images published</span>
-              <p className="text-slate-400 mt-2">The requester did not upload any images for this task.</p>
             </div>
           )}
         </div>
       )}
 
       <div className="max-w-4xl mx-auto px-6">
-        
-        {/* Back Button */}
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 cursor-pointer border-none bg-transparent font-bold transition-colors">
           <span className="material-symbols-outlined">arrow_back</span> Back
         </button>
 
-        {/* Main Card Container */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-          
-          {/* Image Section - Always clickable now */}
-          <div 
-            className="w-full h-64 md:h-[400px] bg-[#f4f6f9] flex items-center justify-center border-b border-slate-100 cursor-pointer"
-            onClick={() => setShowPopup(true)} // Always allow opening the popup
-          >
+          <div className="w-full h-64 md:h-[400px] bg-[#f4f6f9] flex items-center justify-center border-b border-slate-100 cursor-pointer" onClick={() => setShowPopup(true)}>
             {hasImages ? (
-              <img 
-                src={task.images[0]} 
-                alt="Task cover" 
-                className="w-full h-full object-cover hover:opacity-95 transition-opacity" 
-              />
+              <img src={task.images[0]} alt="Task cover" className="w-full h-full object-cover hover:opacity-95 transition-opacity" />
             ) : (
-              /* Inline view when NO image exists */
-              <div className="flex flex-col items-center justify-center text-[#94a3b8] hover:text-slate-500 transition-colors">
-                <span className="material-symbols-outlined text-[64px] mb-2 opacity-60 group-hover:opacity-100">image</span>
-                <span className="font-bold text-sm opacity-80 group-hover:opacity-100">No images (Click to view)</span>
+              <div className="flex flex-col items-center justify-center text-[#94a3b8]">
+                <span className="material-symbols-outlined text-[64px] mb-2 opacity-60">image</span>
+                <span className="font-bold text-sm opacity-80">No images (Click to view)</span>
               </div>
             )}
           </div>
 
-          {/* Details Content */}
           <div className="p-8 md:p-10">
-            
-            {/* Header: Category & Status */}
             <div className="flex justify-between items-center mb-6">
-              <span className="bg-blue-50 text-blue-600 text-[11px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest">
-                {task.category}
-              </span>
+              <span className="bg-blue-50 text-blue-600 text-[11px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest">{task.category}</span>
               <div className="text-right flex flex-col items-end">
                 <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-0.5">Status</span>
                 <span className={`font-bold text-sm uppercase ${
@@ -230,12 +289,10 @@ function TaskDetail() {
               </div>
             </div>
 
-            {/* Title */}
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-8 leading-tight">{task.title}</h1>
 
-            {/* Requested By Card */}
             <div className="flex items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-10 w-full max-w-md">
-              <div className="w-12 h-12 bg-[#2e7d32] text-white rounded-full flex items-center justify-center font-bold text-xl shadow-sm">
+              <div className="w-12 h-12 bg-[#2e7d32] text-white rounded-full flex items-center justify-center font-bold text-xl">
                 {task.requester?.name ? task.requester.name[0].toUpperCase() : 'U'}
               </div>
               <div className="ml-4">
@@ -244,7 +301,6 @@ function TaskDetail() {
               </div>
             </div>
 
-            {/* Description & Location Layout */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
               <div className="md:col-span-2">
                 <h2 className="text-lg font-bold text-slate-900 mb-3">Description</h2>
@@ -263,35 +319,33 @@ function TaskDetail() {
               </div>
             </div>
 
-            {/* ACTION BUTTONS */}
             <div className="mt-12 flex flex-wrap gap-4 pt-8 border-t border-slate-100">
-              
               {currentUserId === taskRequesterId && task.status === 'open' && (
                 <>
-                  <button onClick={() => navigate(`/edit-task/${id}`)} className="flex-1 min-w-[180px] bg-blue-50 text-blue-700 py-4 rounded-2xl font-bold border border-blue-100 hover:bg-blue-100 transition-all cursor-pointer flex items-center justify-center gap-2">
+                  <button onClick={() => navigate(`/edit-task/${id}`)} className="flex-1 min-w-[180px] bg-blue-50 text-blue-700 py-4 rounded-2xl font-bold border border-blue-100 hover:bg-blue-100 flex items-center justify-center gap-2 cursor-pointer border-none">
                     <span className="material-symbols-outlined">edit</span> Edit Task
                   </button>
-                  <button onClick={handleDelete} className="flex-1 min-w-[180px] bg-red-50 text-red-600 py-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 transition-all cursor-pointer flex items-center justify-center gap-2">
+                  <button onClick={handleDelete} className="flex-1 min-w-[180px] bg-red-50 text-red-600 py-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 flex items-center justify-center gap-2 cursor-pointer border-none">
                     <span className="material-symbols-outlined">delete</span> Delete Task
                   </button>
-                </    >
+                </>
               )}
 
               {isInvolved && task.status !== 'completed' && (
-                <button onClick={() => navigate(`/chat/${id}`)} className="flex-1 min-w-[180px] bg-[#2e7d32] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#1b5e20] transition-all cursor-pointer border-none shadow-sm">
+                <button onClick={() => navigate(`/chat/${id}`)} className="flex-1 min-w-[180px] bg-[#2e7d32] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#1b5e20] cursor-pointer border-none shadow-sm">
                   <span className="material-symbols-outlined">chat</span> Message
                 </button>
               )}
 
               {currentUserId === taskVolunteerId && task.status === 'in-progress' && (
                 <>
-                  <button onClick={handleSignalDone} className="flex-1 min-w-[180px] bg-white text-[#2e7d32] py-4 rounded-2xl font-bold border-2 border-[#2e7d32] hover:bg-green-50 transition-all cursor-pointer">
+                  <button onClick={handleSignalDone} className="flex-1 min-w-[180px] bg-white text-[#2e7d32] py-4 rounded-2xl font-bold border-2 border-[#2e7d32] hover:bg-green-50 cursor-pointer">
                     Mark as Finished
                   </button>
-                  <button onClick={handleCancelHelp} className="flex-1 min-w-[180px] bg-red-50 text-red-600 py-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 transition-all cursor-pointer">
+                  <button onClick={handleCancelHelp} className="flex-1 min-w-[180px] bg-red-50 text-red-600 py-4 rounded-2xl font-bold border border-red-100 hover:bg-red-100 cursor-pointer border-none">
                     Cancel Help
                   </button>
-                </    >
+                </>
               )}
 
               {task.status === 'pending-completion' && currentUserId === taskVolunteerId && (
@@ -301,10 +355,14 @@ function TaskDetail() {
               )}
 
               {task.status === 'pending-completion' && currentUserId === taskRequesterId && (
-                <button onClick={handleFinalApprove} className="w-full bg-orange-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-orange-700 shadow-lg shadow-orange-100 transition-all cursor-pointer border-none">
-                  <span className="material-symbols-outlined">verified</span>
-                  Confirm Work & Mark Completed
-                </button>
+                <div className="w-full flex flex-col md:flex-row gap-4">
+                  <button onClick={handleFinalApprove} className="flex-1 bg-orange-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-orange-700 cursor-pointer border-none">
+                    <span className="material-symbols-outlined">verified</span> Confirm Work
+                  </button>
+                  <button onClick={handleDenyCompletion} className="flex-1 bg-white text-red-600 py-4 rounded-2xl font-bold border border-red-200 hover:bg-red-50 flex items-center justify-center gap-2 cursor-pointer">
+                    <span className="material-symbols-outlined">block</span> Deny
+                  </button>
+                </div>
               )}
             </div>
 
@@ -312,88 +370,32 @@ function TaskDetail() {
             {task.status === 'completed' && currentUserId === taskRequesterId && (
               <div className="mt-10 pt-10 border-t border-slate-100">
                 {!task.rating ? (
-                  <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-center animate-in fade-in duration-500 max-w-2xl mx-auto">
+                  <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-center max-w-2xl mx-auto">
                     <h3 className="text-xl font-bold text-slate-900 mb-2">Rate the Volunteer</h3>
-                    <p className="text-slate-500 text-sm mb-6">How was your experience with the volunteer's help?</p>
-                    
                     <div className="flex justify-center gap-2 mb-6">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          className="bg-transparent border-none cursor-pointer outline-none transition-transform hover:scale-110"
-                          onClick={() => setRating(star)}
-                          onMouseEnter={() => setHover(star)}
-                          onMouseLeave={() => setHover(rating)}
-                        >
-                          <span className="material-symbols-outlined text-[42px]"
-                            style={{ 
-                              color: star <= (hover || rating) ? '#FFB800' : '#CBD5E1', 
-                              fontVariationSettings: star <= (hover || rating) ? "'FILL' 1" : "'FILL' 0" 
-                            }}>
-                            star
-                          </span>
+                        <button key={star} type="button" className="bg-transparent border-none cursor-pointer transition-transform hover:scale-110" onClick={() => setRating(star)} onMouseEnter={() => setHover(star)} onMouseLeave={() => setHover(rating)}>
+                          <span className="material-symbols-outlined text-[42px]" style={{ color: star <= (hover || rating) ? '#FFB800' : '#CBD5E1', fontVariationSettings: star <= (hover || rating) ? "'FILL' 1" : "'FILL' 0" }}>star</span>
                         </button>
                       ))}
                     </div>
-
-                    <textarea
-                      className="w-full p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2e7d32] outline-none text-sm mb-4"
-                      placeholder="Share a short review about the volunteer..."
-                      rows="3"
-                      value={review}
-                      onChange={(e) => setReview(e.target.value)}
-                    />
-
-                    <button 
-                      onClick={handleRatingSubmit}
-                      disabled={isSubmitting}
-                      className={`w-full py-4 bg-[#1b4332] text-white rounded-2xl font-bold transition-all shadow-lg ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#081c15]'}`}
-                    >
+                    <textarea className="w-full p-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2e7d32] outline-none text-sm mb-4" placeholder="Review..." rows="3" value={review} onChange={(e) => setReview(e.target.value)} />
+                    <button onClick={handleRatingSubmit} disabled={isSubmitting} className={`w-full py-4 bg-[#1b4332] text-white rounded-2xl font-bold ${isSubmitting ? 'opacity-50' : 'hover:bg-[#081c15]'}`}>
                       {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
                     </button>
                   </div>
                 ) : (
-                  <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm text-center animate-in zoom-in duration-500 max-w-2xl mx-auto">
-                    <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="material-symbols-outlined">check_circle</span>
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-1">Feedback Completed</h3>
-                    <p className="text-slate-500 text-sm mb-4">You have rated this volunteer.</p>
-                    
+                  <div className="p-8 bg-white rounded-3xl border border-slate-200 text-center max-w-2xl mx-auto">
                     <div className="flex justify-center gap-1 mb-3">
                       {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`material-symbols-outlined text-2xl ${i < task.rating ? 'text-yellow-500' : 'text-slate-200'}`}
-                          style={{ fontVariationSettings: i < task.rating ? "'FILL' 1" : "'FILL' 0" }}>
-                          star
-                        </span>
+                        <span key={i} className={`material-symbols-outlined text-2xl ${i < task.rating ? 'text-yellow-500' : 'text-slate-200'}`} style={{ fontVariationSettings: i < task.rating ? "'FILL' 1" : "'FILL' 0" }}>star</span>
                       ))}
                     </div>
-                    {task.review && (
-                      <p className="text-slate-600 italic text-sm mt-2 px-6">"{task.review}"</p>
-                    )}
+                    {task.review && <p className="text-slate-600 italic text-sm">"{task.review}"</p>}
                   </div>
                 )}
               </div>
             )}
-
-            {task.rating && currentUserId === taskVolunteerId && (
-              <div className="mt-10 pt-10 border-t border-slate-100">
-                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-center max-w-2xl mx-auto">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Your Rating for this Task</p>
-                  <div className="flex justify-center gap-1 mb-3">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className={`material-symbols-outlined text-2xl ${i < task.rating ? 'text-yellow-500' : 'text-slate-200'}`}
-                        style={{ fontVariationSettings: i < task.rating ? "'FILL' 1" : "'FILL' 0" }}>
-                        star
-                      </span>
-                    ))}
-                  </div>
-                  {task.review && <p className="text-slate-600 italic text-sm">"{task.review}"</p>}
-                </div>
-              </div>
-            )}
-
           </div>
         </div>
       </div>

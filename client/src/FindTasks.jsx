@@ -98,7 +98,6 @@ function FindTasks() {
         return;
       }
 
-      // Call your new backend route
       const response = await fetch(`http://localhost:5000/api/tasks/${taskId}/accept`, {
         method: 'PUT',
         headers: {
@@ -112,13 +111,10 @@ function FindTasks() {
         throw new Error(data.message || "Failed to accept task");
       }
 
-      // Success! Update the tasks list in React state
-      // We map through the existing tasks and replace the old one with the newly updated one
       setTasks(prevTasks => 
         prevTasks.map(task => task._id === taskId ? data : task)
       );
 
-      // (Optional) Show a success alert or toast notification
       alert("Task accepted! The exact address is now visible.");
 
     } catch (err) {
@@ -127,10 +123,11 @@ function FindTasks() {
     }
   };
 
-// --- FILTER LOGIC ---
+// --- FILTER LOGIC (UPDATED) ---
   const filteredTasks = tasks.filter((task) => {
-    // STRICT FILTER: Only show tasks that are still open
-    if (task.status !== 'open') {
+    // UPDATED: Now shows tasks that are 'open' OR 'rejected'
+    // If a task is rejected, it should be available for others to take over
+    if (task.status !== 'open' && task.status !== 'rejected') {
       return false;
     }
 
@@ -239,7 +236,6 @@ function FindTasks() {
                           </div>
                           <div className="flex items-center gap-1.5 w-full mt-1">
                             <span className="material-symbols-outlined text-[18px]">location_on</span>
-                            {/* FIXED: Uses getDisplayAddress */}
                             <span>Location: <span className="text-slate-700 font-medium">{getDisplayAddress(task)}</span></span>
                           </div>
                         </div>
@@ -249,33 +245,30 @@ function FindTasks() {
                         <p className="text-slate-400 text-sm mb-4">Posted {getTimeAgo(task.createdAt)}</p>
                         
                         {user && user.role === 'volunteer' ? (
-  /* Check if the current user already accepted this task */
-  task.volunteer === user._id ? (
-    <button disabled className="bg-slate-200 text-slate-500 font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto transition-colors text-center inline-block cursor-not-allowed">
-      <span className="flex items-center justify-center gap-1">
-        <span className="material-symbols-outlined text-[18px]">check_circle</span>
-        Task Accepted
-      </span>
-    </button>
-  ) : task.volunteer ? (
-    /* Check if someone else already accepted it */
-    <button disabled className="bg-slate-100 text-slate-400 border border-slate-200 font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto transition-colors text-center inline-block cursor-not-allowed">
-      Already Taken
-    </button>
-  ) : (
-    /* Available to accept */
-    <button 
-      onClick={() => handleAcceptTask(task._id)}
-      className="bg-[#2e7d32] hover:bg-[#1b5e20] text-white font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto transition-colors text-center inline-block shadow-sm"
-    >
-      Accept Task
-    </button>
-  )
-) : (
-  <Link to="/login" className="bg-slate-100 text-slate-500 font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto hover:bg-slate-200 transition-colors text-center inline-block">
-    Sign in to help
-  </Link>
-)}
+                          task.volunteer === user._id ? (
+                            <button disabled className="bg-slate-200 text-slate-500 font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto transition-colors text-center inline-block cursor-not-allowed">
+                              <span className="flex items-center justify-center gap-1">
+                                <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                Task Accepted
+                              </span>
+                            </button>
+                          ) : task.volunteer ? (
+                            <button disabled className="bg-slate-100 text-slate-400 border border-slate-200 font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto transition-colors text-center inline-block cursor-not-allowed">
+                              Already Taken
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => handleAcceptTask(task._id)}
+                              className="bg-[#2e7d32] hover:bg-[#1b5e20] text-white font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto transition-colors text-center inline-block shadow-sm"
+                            >
+                              Accept Task
+                            </button>
+                          )
+                        ) : (
+                          <Link to="/login" className="bg-slate-100 text-slate-500 font-medium px-5 py-2.5 rounded-xl text-sm w-full md:w-auto hover:bg-slate-200 transition-colors text-center inline-block">
+                            Sign in to help
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -301,8 +294,6 @@ function FindTasks() {
               {!loading && filteredTasks.length > 0 ? (
                 filteredTasks.map((task) => {
                   const priorityInfo = getPriorityInfo(task.urgency);
-                  
-                  // FIXED: Use getDisplayAddress to secure the sidebar
                   const taskAddress = getDisplayAddress(task);
                   const isSelected = selectedLocation === taskAddress; 
                   
@@ -338,7 +329,6 @@ function FindTasks() {
 
             {/* Right Side: Map Container */}
             <div className="w-full lg:w-2/3 h-full bg-slate-200 rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative">
-              {/* FIXED: Corrected iframe URL syntax and protocol to https */}
               <iframe 
                 src={`https://maps.google.com/maps?q=${encodeURIComponent(selectedLocation)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
                 className="w-full h-full"

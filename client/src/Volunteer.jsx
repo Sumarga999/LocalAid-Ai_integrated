@@ -41,11 +41,14 @@ function Volunteer() {
   const totalCount = myVolunteerTasks.length;
   const inProgressCount = myVolunteerTasks.filter(t => t.status === 'in-progress').length;
   const completedCount = myVolunteerTasks.filter(t => t.status === 'completed').length;
+  // Added count for rejected tasks
+  const rejectedCount = myVolunteerTasks.filter(t => t.status === 'rejected').length;
 
   const displayedTasks = myVolunteerTasks.filter(task => {
     if (activeTab === 'all') return true;
     if (activeTab === 'progress') return task.status === 'in-progress';
     if (activeTab === 'completed') return task.status === 'completed';
+    if (activeTab === 'rejected') return task.status === 'rejected'; // Added rejected filter
     return true;
   });
 
@@ -60,7 +63,7 @@ function Volunteer() {
         </div>
 
         {/* Stats Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"> {/* Changed to grid-cols-4 */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-slate-500 text-sm font-medium mb-1">Total Tasks</p>
@@ -81,6 +84,17 @@ function Volunteer() {
             </div>
           </div>
 
+          {/* NEW REJECTED STAT CARD */}
+          <div className="bg-white p-6 rounded-2xl border border-red-100 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-sm font-medium mb-1">Needs Fixing</p>
+              <p className="text-3xl font-light text-red-600">{rejectedCount}</p>
+            </div>
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+              <span className="material-symbols-outlined">report_problem</span>
+            </div>
+          </div>
+
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-slate-500 text-sm font-medium mb-1">Completed</p>
@@ -93,17 +107,17 @@ function Volunteer() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-t-2xl border border-slate-200 shadow-sm border-b-0 flex">
-          {['all', 'progress', 'completed'].map((tab) => (
+        <div className="bg-white rounded-t-2xl border border-slate-200 shadow-sm border-b-0 flex overflow-x-auto">
+          {['all', 'progress', 'rejected', 'completed'].map((tab) => (
             <button 
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-4 text-sm font-medium text-center border-b-2 transition-colors capitalize ${
+              className={`flex-1 min-w-[120px] py-4 text-sm font-medium text-center border-b-2 transition-colors capitalize ${
                 activeTab === tab ? 'border-[#2e7d32] text-[#2e7d32]' : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
               {tab === 'progress' ? 'In Progress' : tab} ({
-                tab === 'all' ? totalCount : tab === 'progress' ? inProgressCount : completedCount
+                tab === 'all' ? totalCount : tab === 'progress' ? inProgressCount : tab === 'rejected' ? rejectedCount : completedCount
               })
             </button>
           ))}
@@ -116,7 +130,19 @@ function Volunteer() {
           ) : displayedTasks.length > 0 ? (
             <div className="flex flex-col gap-4">
               {displayedTasks.map(task => (
-                <div key={task._id} className="bg-white border border-slate-100 rounded-2xl p-4 hover:border-green-200 hover:shadow-md transition-all">
+                <div key={task._id} className={`bg-white border rounded-2xl p-4 transition-all ${task.status === 'rejected' ? 'border-red-200 bg-red-50/30' : 'border-slate-100 hover:border-green-200 hover:shadow-md'}`}>
+                  
+                  {/* REJECTION NOTICE BOX */}
+                  {task.status === 'rejected' && (
+                    <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-xl flex items-start gap-3">
+                      <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
+                      <div>
+                        <p className="text-sm font-bold text-red-800">Completion Declined</p>
+                        <p className="text-sm text-red-700 italic">"{(task.rejectionReason) || 'No reason provided by requester.'}"</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-col md:flex-row items-center gap-5">
                     
                     {/* Thumbnail */}
@@ -134,7 +160,9 @@ function Volunteer() {
                     <div className="flex-grow text-center md:text-left overflow-hidden">
                       <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-1">
                         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
-                          task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          task.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          task.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                          'bg-blue-100 text-blue-700'
                         }`}>
                           {task.status.replace('-', ' ')}
                         </span>
@@ -153,9 +181,13 @@ function Volunteer() {
                     <div className="shrink-0 w-full md:w-auto">
                       <Link 
                         to={`/task/${task._id}`}
-                        className="flex items-center justify-center gap-2 bg-slate-50 text-slate-700 hover:bg-[#2e7d32] hover:text-white border border-slate-200 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all"
+                        className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all border ${
+                          task.status === 'rejected' 
+                          ? 'bg-red-600 text-white border-red-600 hover:bg-red-700' 
+                          : 'bg-slate-50 text-slate-700 hover:bg-[#2e7d32] hover:text-white border-slate-200'
+                        }`}
                       >
-                        Manage Task
+                        {task.status === 'rejected' ? 'Fix & Resubmit' : 'Manage Task'}
                         <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                       </Link>
                     </div>

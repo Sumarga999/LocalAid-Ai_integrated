@@ -60,7 +60,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 4. RATE Task (MUST BE ABOVE router.put('/:id'))
+// 4. RATE Task
 router.put('/:id/rate', authMiddleware, async (req, res) => {
   try {
     const { rating, review } = req.body;
@@ -74,9 +74,9 @@ router.put('/:id/rate', authMiddleware, async (req, res) => {
 
     task.rating = rating;
     task.review = review;
-    const updatedTask = await task.save();
+    await task.save();
     
-    // We send the task back directly as the response
+    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
     res.status(200).json(updatedTask); 
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -90,7 +90,9 @@ router.put('/:id/accept', authMiddleware, async (req, res) => {
     if (!task || task.volunteer) return res.status(400).json({ message: 'Cannot accept' });
     task.volunteer = getUserId(req.user);
     task.status = 'in-progress'; 
-    const updatedTask = await task.save();
+    await task.save();
+
+    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
     res.json(updatedTask);
   } catch (error) {
     res.status(500).json({ message: 'Error' });
@@ -100,13 +102,48 @@ router.put('/:id/accept', authMiddleware, async (req, res) => {
 // 6. REQUEST COMPLETION
 router.put('/:id/request-completion', authMiddleware, async (req, res) => {
   try {
+    const { completionNote } = req.body;
     const task = await Task.findById(req.params.id);
+    
     if (task.volunteer?.toString() !== getUserId(req.user)) return res.status(403).json({ message: 'Unauthorized' });
+    
     task.status = 'pending-completion'; 
-    const updatedTask = await task.save();
+    task.completionNote = completionNote; 
+    task.rejectionReason = null; 
+    
+    await task.save();
+    
+    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
     res.json(updatedTask);
   } catch (error) {
     res.status(500).json({ message: 'Error' });
+  }
+});
+
+// UPDATED: DENY COMPLETION (Resets task to Open)
+router.put('/:id/reject', authMiddleware, async (req, res) => {
+  try {
+    const { rejectionReason } = req.body;
+    const task = await Task.findById(req.params.id);
+
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    if (task.requester.toString() !== getUserId(req.user)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    // RESET LOGIC:
+    task.status = 'open';             // Make it available again
+    task.volunteer = null;            // Remove the current volunteer
+    task.rejectionReason = rejectionReason; 
+    task.completionNote = null; 
+
+    await task.save();
+    
+    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
+    res.json(updatedTask);
+  } catch (error) {
+    res.status(500).json({ message: 'Error denying completion' });
   }
 });
 
@@ -115,78 +152,73 @@ router.put('/:id/cancel', authMiddleware, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (task.volunteer?.toString() !== getUserId(req.user)) return res.status(403).json({ message: 'Unauthorized' });
-    task.volunteer = undefined;
+    
+    task.volunteer = null;
     task.status = 'open'; 
-    const updatedTask = await task.save();
+    
+    await task.save();
+    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
     res.json(updatedTask);
   } catch (error) {
     res.status(500).json({ message: 'Error' });
   }
 });
 
-// 8. GENERAL UPDATE (MUST BE LAST)
+// 8. GENERAL UPDATE
 router.put('/:id', authMiddleware, upload.single('image'), async (req, res) => {
   try {
-    // 1. Extract ALL the fields you might want to edit from the frontend
     const { title, description, category, urgency, status } = req.body; 
     
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    // 2. Check authorization
     if (task.requester.toString() !== getUserId(req.user)) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // 3. Update the fields if they exist in the request
     if (title) task.title = title;
     if (description) task.description = description;
     if (category) task.category = category;
     if (urgency) task.urgency = urgency;
 
-    // 4. Handle Status updates
     if (status === 'completed') {
       task.status = 'completed';
       task.completedAt = new Date();
+      task.rejectionReason = null; 
     } else if (status) {
       task.status = status;
     }
 
-    // 5. Handle Image updates (if your edit page allows uploading a new image)
     if (req.file) {
       const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
       task.images = [imageUrl];
     }
 
-    // 6. Save the updated task
-    const updatedTask = await task.save();
+    await task.save();
+    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
     res.status(200).json(updatedTask);
   } catch (error) {
     console.error("Update Error:", error);
     res.status(500).json({ message: 'Error updating task' });
   }
 });
+
 // 9. DELETE Task
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
+    if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    // Check if the user trying to delete is the person who created the task
     const currentUserId = getUserId(req.user);
     if (task.requester.toString() !== currentUserId) {
-      return res.status(403).json({ message: 'Unauthorized: You can only delete your own tasks' });
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Delete the task
     await Task.findByIdAndDelete(req.params.id);
-    
     res.status(200).json({ message: 'Task deleted successfully' });
   } catch (error) {
-    console.error("Delete Error:", error);
     res.status(500).json({ message: 'Error deleting task' });
   }
 });
+
 export default router;

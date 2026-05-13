@@ -50,7 +50,7 @@ const taskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['open', 'in-progress', 'pending-completion', 'completed'],
+    enum: ['open', 'in-progress', 'pending-completion', 'completed','rejected'],
     default: 'open'
   },
   completedAt: {
@@ -65,6 +65,15 @@ const taskSchema = new mongoose.Schema({
     default: null
   },
   review: {
+    type: String,
+    default: null
+  },
+  // Add these to the bottom of your Task.js schema fields
+  rejectionReason: {
+    type: String,
+    default: null
+  },
+  completionNote: {
     type: String,
     default: null
   }
