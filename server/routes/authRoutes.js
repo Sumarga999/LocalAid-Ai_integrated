@@ -64,8 +64,11 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: 'Your volunteer account has been rejected.' });
     }
 
+    // --- THE FIX IS HERE ---
+    // We include both 'userId' (for your rating route) and '_id' (for your task routes)
     const payload = {
       userId: user._id,
+      _id: user._id, // Add this line so authMiddleware finds it!
       role: user.role,
       name: user.name
     };
@@ -100,7 +103,7 @@ router.post('/:id/rate', authMiddleware, async (req, res) => {
 
     userToRate.ratings.push({
       rating: Number(rating),
-      reviewer: req.user.userId || req.user._id,
+      reviewer: req.user._id || req.user.userId,
       task: taskId
     });
 

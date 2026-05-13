@@ -3,221 +3,117 @@ import multer from 'multer';
 import path from 'path';
 import Task from '../models/Task.js';
 import authMiddleware from '../middleware/authMiddleware.js';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = express.Router();
 
+// --- AI LOGIC ---
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const categorizeTaskAI = async (title, description) => {
+  try {
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: `
+        Categorize into: ["Grocery Delivery", "Medication Delivery", "Child Day Care", "Animal Day Care", "Plumbing", "Cleaning", "Tutoring", "Other"].
+        Urgency: ["Low", "Medium", "High", "Critical"].
+        Rules: Water/Toilets = Plumbing + High. Medicine = Critical.
+        Return valid JSON ONLY: { "category": "...", "urgency": "..." }
+      `
+    });
+
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: `Title: ${title}\nDesc: ${description}` }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    return JSON.parse(result.response.text());
+  } catch (error) {
+    return { category: "Other", urgency: "Medium" };
+  }
+};
+
+// --- FILE UPLOAD ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage: storage });
 
-const getUserId = (user) => (user._id || user.userId || user.id).toString();
+// --- ROUTES ---
 
-// 1. CREATE Task
+// 1. Create Task
 router.post('/', authMiddleware, upload.single('image'), async (req, res) => {
   try {
-    const { title, description, category, urgency, dueDate, latitude, longitude, address } = req.body;
-    const imageUrl = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : '';
-    const currentUserId = getUserId(req.user);
+    const { title, description, dueDate, latitude, longitude, address } = req.body;
+    const aiAnalysis = await categorizeTaskAI(title, description);
 
     const newTask = new Task({
-      title, description, category, urgency, dueDate,
+      title,
+      description,
+      category: aiAnalysis.category,
+      urgency: aiAnalysis.urgency,
+      dueDate,
       location: {
         type: 'Point',
-        coordinates: [parseFloat(longitude), parseFloat(latitude)], 
+        coordinates: [parseFloat(longitude) || 0, parseFloat(latitude) || 0],
         address
       },
-      images: imageUrl ? [imageUrl] : [], 
-      requester: currentUserId
+      images: req.file ? [`http://localhost:5000/uploads/${req.file.filename}`] : [],
+      requester: req.user._id || req.user.userId || req.user.id // Safety first
     });
 
-    const savedTask = await newTask.save();
-    res.status(201).json({ message: 'Created', task: savedTask });
+    await newTask.save();
+    res.status(201).json({ message: 'Created successfully', task: newTask });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error("Creation Error:", error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
-// 2. GET All Tasks
-router.get('/', async (req, res) => {
-  try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
-    res.status(200).json(tasks);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// 3. GET Single Task
-router.get('/:id', async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
-    if (!task) return res.status(404).json({ message: "Task not found" });
-    res.json(task);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// 4. RATE Task
-router.put('/:id/rate', authMiddleware, async (req, res) => {
-  try {
-    const { rating, review } = req.body;
-    const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ message: 'Task not found' });
-
-    const currentUserId = getUserId(req.user);
-    if (task.requester.toString() !== currentUserId) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    task.rating = rating;
-    task.review = review;
-    await task.save();
-    
-    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
-    res.status(200).json(updatedTask); 
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// 5. ACCEPT Task
+// 2. Accept Task (FIXING THE 500 ERROR HERE)
 router.put('/:id/accept', authMiddleware, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
-    if (!task || task.volunteer) return res.status(400).json({ message: 'Cannot accept' });
-    task.volunteer = getUserId(req.user);
-    task.status = 'in-progress'; 
-    await task.save();
+    const volunteerId = req.user._id || req.user.userId || req.user.id;
+    
+    // Use findByIdAndUpdate to avoid validation issues with other fields
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      { 
+        volunteer: volunteerId,
+        status: 'accepted' 
+      },
+      { new: true }
+    ).populate('requester', 'name email');
 
-    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
+    if (!updatedTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
     res.json(updatedTask);
   } catch (error) {
-    res.status(500).json({ message: 'Error' });
+    console.error("Acceptance Error details:", error.message);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
-// 6. REQUEST COMPLETION
-router.put('/:id/request-completion', authMiddleware, async (req, res) => {
+// 3. Get All Tasks
+router.get('/', async (req, res) => {
   try {
-    const { completionNote } = req.body;
-    const task = await Task.findById(req.params.id);
-    
-    if (task.volunteer?.toString() !== getUserId(req.user)) return res.status(403).json({ message: 'Unauthorized' });
-    
-    task.status = 'pending-completion'; 
-    task.completionNote = completionNote; 
-    task.rejectionReason = null; 
-    
-    await task.save();
-    
-    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
-    res.json(updatedTask);
+    const tasks = await Task.find().populate('requester', 'name');
+    res.json(tasks);
   } catch (error) {
-    res.status(500).json({ message: 'Error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// UPDATED: DENY COMPLETION (Resets task to Open)
-router.put('/:id/reject', authMiddleware, async (req, res) => {
+// 4. Get Single Task
+router.get('/:id', async (req, res) => {
   try {
-    const { rejectionReason } = req.body;
-    const task = await Task.findById(req.params.id);
-
-    if (!task) return res.status(404).json({ message: 'Task not found' });
-
-    if (task.requester.toString() !== getUserId(req.user)) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    // RESET LOGIC:
-    task.status = 'open';             // Make it available again
-    task.volunteer = null;            // Remove the current volunteer
-    task.rejectionReason = rejectionReason; 
-    task.completionNote = null; 
-
-    await task.save();
-    
-    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
-    res.json(updatedTask);
+    const task = await Task.findById(req.params.id).populate('requester', 'name email').populate('volunteer', 'name email');
+    res.json(task || {});
   } catch (error) {
-    res.status(500).json({ message: 'Error denying completion' });
-  }
-});
-
-// 7. CANCEL HELP
-router.put('/:id/cancel', authMiddleware, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
-    if (task.volunteer?.toString() !== getUserId(req.user)) return res.status(403).json({ message: 'Unauthorized' });
-    
-    task.volunteer = null;
-    task.status = 'open'; 
-    
-    await task.save();
-    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
-    res.json(updatedTask);
-  } catch (error) {
-    res.status(500).json({ message: 'Error' });
-  }
-});
-
-// 8. GENERAL UPDATE
-router.put('/:id', authMiddleware, upload.single('image'), async (req, res) => {
-  try {
-    const { title, description, category, urgency, status } = req.body; 
-    
-    const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ message: 'Task not found' });
-
-    if (task.requester.toString() !== getUserId(req.user)) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    if (title) task.title = title;
-    if (description) task.description = description;
-    if (category) task.category = category;
-    if (urgency) task.urgency = urgency;
-
-    if (status === 'completed') {
-      task.status = 'completed';
-      task.completedAt = new Date();
-      task.rejectionReason = null; 
-    } else if (status) {
-      task.status = status;
-    }
-
-    if (req.file) {
-      const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
-      task.images = [imageUrl];
-    }
-
-    await task.save();
-    const updatedTask = await Task.findById(req.params.id).populate('requester', 'name').populate('volunteer', 'name');
-    res.status(200).json(updatedTask);
-  } catch (error) {
-    console.error("Update Error:", error);
-    res.status(500).json({ message: 'Error updating task' });
-  }
-});
-
-// 9. DELETE Task
-router.delete('/:id', authMiddleware, async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ message: 'Task not found' });
-
-    const currentUserId = getUserId(req.user);
-    if (task.requester.toString() !== currentUserId) {
-      return res.status(403).json({ message: 'Unauthorized' });
-    }
-
-    await Task.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Task deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting task' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

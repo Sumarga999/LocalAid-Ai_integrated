@@ -12,17 +12,18 @@ function FindTasks() {
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : null;
 
-  // --- HELPER FUNCTIONS ---
+  // --- HELPER FUNCTIONS (UPDATED FOR AI) ---
 
   const getPriorityInfo = (urgency) => {
     const level = urgency?.toLowerCase() || '';
+    // AI labels: High, Critical, Medium, Low
     if (level.includes('high') || level.includes('critical')) {
-      return { text: 'High Priority', color: 'bg-[#e53935] text-white' };
+      return { text: urgency || 'High Priority', color: 'bg-[#e53935] text-white' };
     }
     if (level.includes('medium')) {
-      return { text: 'Medium Priority', color: 'bg-[#ffca28] text-slate-900' };
+      return { text: urgency || 'Medium Priority', color: 'bg-[#ffca28] text-slate-900' };
     }
-    return { text: 'Low Priority', color: 'bg-slate-100 text-slate-600' };
+    return { text: urgency || 'Low Priority', color: 'bg-slate-100 text-slate-600' };
   };
 
   const getDisplayAddress = (task) => {
@@ -43,13 +44,18 @@ function FindTasks() {
     return 'Area hidden until accepted';
   };
 
+  // UPDATED: Added icons for new AI categories
   const getCategoryIcon = (category) => {
     const cat = category?.toLowerCase() || '';
-    if (cat.includes('shop')) return 'shopping_cart';
-    if (cat.includes('mov')) return 'package';
-    if (cat.includes('pet')) return 'pets';
-    if (cat.includes('tech')) return 'computer';
+    if (cat.includes('shop') || cat.includes('grocery')) return 'shopping_cart';
+    if (cat.includes('mov') || cat.includes('delivery')) return 'local_shipping';
+    if (cat.includes('pet') || cat.includes('animal')) return 'pets';
+    if (cat.includes('tech') || cat.includes('computer')) return 'computer';
     if (cat.includes('child')) return 'child_care';
+    if (cat.includes('medication')) return 'medical_services';
+    if (cat.includes('plumb')) return 'plumbing';
+    if (cat.includes('clean')) return 'cleaning_services';
+    if (cat.includes('tutor')) return 'school';
     return 'volunteer_activism'; 
   };
 
@@ -76,7 +82,6 @@ function FindTasks() {
         const data = await response.json();
         setTasks(data);
         
-        // FIXED: Set the initial map pin to the SECURE masked address
         if (data.length > 0) {
           setSelectedLocation(getDisplayAddress(data[0]));
         }
@@ -123,10 +128,7 @@ function FindTasks() {
     }
   };
 
-// --- FILTER LOGIC (UPDATED) ---
   const filteredTasks = tasks.filter((task) => {
-    // UPDATED: Now shows tasks that are 'open' OR 'rejected'
-    // If a task is rejected, it should be available for others to take over
     if (task.status !== 'open' && task.status !== 'rejected') {
       return false;
     }
@@ -149,7 +151,6 @@ function FindTasks() {
     <div className="min-h-screen bg-slate-50 pt-10 pb-20 font-plus-jakarta">
       <div className="max-w-7xl mx-auto px-6">
         
-        {/* Header Section */}
         <div className="mb-6">
           <h1 className="text-[32px] font-bold text-slate-900 leading-tight">Task Board</h1>
           <p className="text-slate-500 mt-1">
@@ -157,7 +158,6 @@ function FindTasks() {
           </p>
         </div>
 
-        {/* Controls / Filter Bar */}
         <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
           
           <div className="flex items-center bg-slate-100 p-1 rounded-xl">
@@ -199,10 +199,7 @@ function FindTasks() {
           </div>
         </div>
 
-        {/* CONDITIONAL RENDERING: Show List OR Map */}
         {viewMode === 'list' ? (
-          
-          /* --- LIST VIEW --- */
           <div className="flex flex-col gap-5 max-w-5xl mx-auto">
             {!loading && filteredTasks.length > 0 ? (
               filteredTasks.map((task) => {
@@ -285,11 +282,7 @@ function FindTasks() {
           </div>
 
         ) : (
-
-          /* --- MAP VIEW (Split Layout) --- */
           <div className="flex flex-col lg:flex-row gap-6 h-[700px]">
-            
-            {/* Left Side: Scrollable Mini-List */}
             <div className="w-full lg:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 pb-4 h-[400px] lg:h-full custom-scrollbar">
               {!loading && filteredTasks.length > 0 ? (
                 filteredTasks.map((task) => {
@@ -327,7 +320,6 @@ function FindTasks() {
               ) : null}
             </div>
 
-            {/* Right Side: Map Container */}
             <div className="w-full lg:w-2/3 h-full bg-slate-200 rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative">
               <iframe 
                 src={`https://maps.google.com/maps?q=${encodeURIComponent(selectedLocation)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
@@ -342,9 +334,7 @@ function FindTasks() {
               </div>
             </div>
           </div>
-
         )}
-
       </div>
     </div>
   );
